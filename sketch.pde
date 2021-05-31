@@ -250,8 +250,8 @@ void panel()
       c_buttons[i].show();
   }
 
-  MagnGlass(width - 50, 44, "+");
-  MagnGlass(width - 50, 133, "-");
+  //MagnGlass(width - 50, 44, "+");
+  //MagnGlass(width - 50, 133, "-");
   ZOOM_IN.show();
   ZOOM_OUT.show();
   MENU_B.show();
