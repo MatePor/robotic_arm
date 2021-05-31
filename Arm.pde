@@ -1,7 +1,8 @@
 class Arm
 {
   String ID;
-  int grip_size, max_grip_size;
+  int grip_size,  max_grip;
+  float virt_size, dsize;
   thing base, gripper;
   joint []joints = new joint[6];
   thing []segments = new thing[6];
@@ -11,11 +12,16 @@ class Arm
   PVector []effector_pos_history;
   PVector []move_history;
 
-  Arm(PVector []angles, PVector pos, String ID_)
+  Arm(PVector []angles, PVector pos, String ID_, int max_grip_)
   {
     position = pos;
-
+    
     ID = ID_;
+    max_grip = max_grip_;
+    grip_size = 0;
+    virt_size = 0;
+    dsize = 0.5;
+    
     color grey = color(180);
     base = new thing(50, 0, -25, 0, 0, 0, 0, grey);
 
@@ -36,6 +42,9 @@ class Arm
     segments[4] = new thing(8, 8, 8, 0, 0, 0, 0, 0, 0, grey);
     segments[5] = new thing(4, 10, 4, 0, -8, 0, 0, 0, 0, grey);
 
+    gripper = new thing(8, 2, max_grip+2, 0, -14, 0, 0, 0, 0, grey);
+    
+    // decorations 
     PShape elem_1 = createShape(BOX, 18, 100, 8);
     elem_1.translate(0, 0, -34);
     segments[1].obj.addChild(elem_1);
@@ -51,6 +60,13 @@ class Arm
     wrist.translate(0, -4, 0);
     wrist.setStroke(220);
     segments[4].obj.addChild(wrist);
+    
+    PShape grip_l = createShape(BOX, 8, 8, 1);
+    PShape grip_r = createShape(BOX, 8, 8, 1);
+    grip_l.translate(0, -5, 0.5);  
+    grip_r.translate(0, -5, -0.5); 
+    gripper.obj.addChild(grip_l);
+    gripper.obj.addChild(grip_r);
 
     for (int i = 0; i < 6; i++)
     {
@@ -64,21 +80,32 @@ class Arm
   void updateArm(PVector []angles)
   {
     PVector zeros = new PVector(0,0,0);
-    effector_orient = zeros; 
+    effector_orient = zeros;
     
+    if(virt_size == grip_size)
+       dsize = 0;
+    if(virt_size < grip_size)
+       dsize = 0.1;
+    if(virt_size > grip_size)
+       dsize = -0.1;
+       
+     gripper.obj.getChild(1).translate(0, 0, dsize);  
+     gripper.obj.getChild(2).translate(0, 0, -dsize); 
+     virt_size += 2*dsize;
+        
     for (int i = 0; i < 6; i++)
     {
       joints[i].orient = angles[i];
       effector_orient.add(angles[i]);
     } 
 
-    effector_pos.x = -80*cos(angles[1].z)*cos(angles[0].y)
-    -80*cos(angles[2].z - angles[1].z)*cos(angles[0].y);
+    //effector_pos.x = -80*cos(angles[1].z)*cos(angles[0].y)
+    //-80*cos(angles[2].z - angles[1].z)*cos(angles[0].y);
     
-    effector_pos.y = -80+80*sin(-angles[1].z) + 75*sin(angles[1].z - angles[2].z);
+    //effector_pos.y = -80+80*sin(-angles[1].z) + 75*sin(angles[1].z - angles[2].z);
     
-    effector_pos.z = -80*cos(angles[1].z)*sin(-angles[0].y)
-    -80*cos(angles[2].z - angles[1].z)*sin(-angles[0].y);
+    //effector_pos.z = -80*cos(angles[1].z)*sin(-angles[0].y)
+    //-80*cos(angles[2].z - angles[1].z)*sin(-angles[0].y);
 
     //effector_pos.add(new PVector(0, -12, 0));
   }
@@ -94,16 +121,17 @@ class Arm
       segments[i].show();
     } 
 
-    //gripper.show();
+    gripper.show();
+    effector_pos.x = modelX(0,0,0);
+    effector_pos.y = modelY(0,0,0);
+    effector_pos.z = modelZ(0,0,0);
+    
+    /*
     // gripper animation
     stroke(0);
-    strokeWeight(1);
+    strokeWeight(0.5);
     pushMatrix();
-    translate(0, -12);
-    rotateX(PI/2);
-    box(8, max_grip, 2);
-    rect(0, 0, 8, grip_size);
-
+   
     translate(0, -grip_size/2, 4);
     rotateX(PI/2);
     rect(0, 0, 8, 8);
@@ -112,6 +140,7 @@ class Arm
     rect(0, 0, 8, 8);
 
     popMatrix();
+    */
     popMatrix();
   }
 }

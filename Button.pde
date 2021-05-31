@@ -18,11 +18,11 @@ class button
   {
     if (pressed) 
     {  
-      strokeWeight(8);
+      strokeWeight(4);
       fill(90, 180);
     } else
     {  
-      strokeWeight(3);
+      strokeWeight(2);
       fill(180, 180);
     }
 
@@ -30,11 +30,11 @@ class button
     rect(x, y, w, h); 
 
     fill(255, 0, 0, 180);
-    textAlign(CENTER);
+    textAlign(CENTER, CENTER);
     if (h != 0)
     {
-      textSize(0.8*h);
-      text(title, x, y, 0.95*w, 0.8*h);
+      textSize(0.4*h);
+      text(title, x, y, w, h);
     }
   }
 }
