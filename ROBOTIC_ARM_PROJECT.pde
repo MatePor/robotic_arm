@@ -15,8 +15,10 @@ PImage roof;
 thing things[];
 Arm robot;
 button c_buttons[]; 
-button START, MENU_B, INSTRUCTIONS, AUTHOR, DOCUMENTATION, BACK, 
-  FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT, INV_KIN, RECORD;
+button START, MENU_B, INSTRUCTIONS, AUTHOR, DOCUMENTATION, BACK_B, 
+  FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT, INV_KIN, RECORD, MODE_B;
+int mode_num;
+String []mode_names = {"MANUAL_B", "EULER_A", "INVERSE_K", "RECORDED_P", "AUTOMATIC"};
 
 void setup()
 {
@@ -46,6 +48,7 @@ void setup()
   roll = 0;
   pitch = 0;
   yaw = 0;
+  mode_num = 0;
 
   angles = new PVector[6];
   for (int i = 0; i < 6; i++)
@@ -55,7 +58,7 @@ void setup()
   da = PI/128; 
 
   // create an arm
-  robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1",26);
+  robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
 
   // things
   num_of_things = 2;
@@ -85,14 +88,15 @@ void setup()
   INSTRUCTIONS = new button(width/2, height/3 + 90, width/2, 70, "INSTRUCTIONS");
   DOCUMENTATION = new button(width/2, height/3 + 180, width/2, 70, "DOCUMENTATION");
   AUTHOR = new button(width/2, height/3 + 270, width/2, 70, "AUTHOR");
-  BACK = new button(150, 150, 80, 80, "BACK");
+  BACK_B = new button(100, 100, 80, 80, "BACK");
 
   MENU_B = new button(80, 20, 160, 40, "MENU");
 
   //FLY = new button(240, 20, 160, 40, "FLY MODE");
-  //MAN_AUT = new button(240, 20, 160, 40, "AUTOMATIC");
-  //INV_KIN = new button(240, 20, 160, 40, "INV_KIN");
-  //RECORD = new button(240, 20, 160, 40, "RECORD");
+  RECORD = new button(240, 20, 160, 40, "RECORD");
+  MODE_B = new button(240, 60, 160, 40, "MANUAL");
+  //RECORD = new button(300, 20, 160, 40, "RECORD");
+  //RECORD = new button(300, 60, 160, 40, "");
 
   num_of_c_buttons = 14;
   button_is_pressed = false;
@@ -135,8 +139,8 @@ void setup()
 void draw()
 {
   background(255);
-
   lights();
+
   anythingPressed();
 
   if (menu)
@@ -165,7 +169,7 @@ void draw()
     animation();
     popMatrix();
     popMatrix();
-    
+
     //interface
     panel();
   }
@@ -236,7 +240,8 @@ void panel()
   if (roll_up)
   {  
     fill(240, 180);
-    rect(80, 230, 160, 300);
+    rect(80, 220, 160, 280);
+    rect(240, 40, 160, 80);
     textSize(12);
     textAlign(CENTER, CENTER);
     fill(0);
@@ -249,6 +254,7 @@ void panel()
     text("yaw: "+ toDegr(yaw), 40, 300, 76, 38);
     text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
 
+    MODE_B.show();
     for (int i = 0; i < num_of_c_buttons; i++)
       c_buttons[i].show();
   }
@@ -344,10 +350,10 @@ void MagnGlass(int x, int y, String sign)
   line(x+15*cos(-PI/3), y+15*sin(PI/3), x+35*cos(-PI/3), y+35*sin(PI/3));
   strokeWeight(1);
   textSize(25);
-  textAlign(CENTER);
+  textAlign(CENTER, CENTER);
   rectMode(CENTER);
   fill(0);
-  text(sign, x, y-2, 30, 30);
+  text(sign, x, y, 30, 30);
 }
 
 /*
@@ -376,59 +382,43 @@ void update_angles()
   angles[5].x = yaw;
 }
 
-void openMenu()
-{
-  background(0);
-  fill(120);
-  rect(width/2, height/2, 700, 500 );
-
-  fill(220);
-  textSize(30);
-  text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
-  START.show();
-  INSTRUCTIONS.show();
-  DOCUMENTATION.show();
-  AUTHOR.show();
-
-  START.pressed = isPressed(START);
-  INSTRUCTIONS.pressed = isPressed(INSTRUCTIONS);
-  DOCUMENTATION.pressed = isPressed(DOCUMENTATION);
-  AUTHOR.pressed = isPressed(AUTHOR);
-  
-  /*
-  if(auth)
-    openAuthor();
-  if(inst)
-    openInstruction();
-  if(docu)
-    openDocumentation();
-  */
-  
-}
-
 void mouseReleased()
 {
-   if(!menu && MENU_B.pressed)
+  if (MENU_B.pressed)
     menu = true;
-
-   if(CONTROLS.pressed)
-    roll_up = !roll_up;
     
-   if(START.pressed)
-     menu = false; 
-   if(INSTRUCTIONS.pressed)
-     inst = true;
-   if(DOCUMENTATION.pressed)
-     docu = true;
-   if(AUTHOR.pressed)
-     auth = true;
-  
-   if(BACK.pressed)
-   {
-     inst = false;
-     auth = false;
-     docu = false;
-   }
+  if (roll_up && MODE_B.pressed)
+    {
+      mode_num++;
+      if(mode_num > 4)
+        mode_num = 0;
+      MODE_B.title = mode_names[mode_num];
+    }
+
+  if (CONTROLS.pressed)
+    roll_up = !roll_up;
+
+  if (START.pressed)
+  {
+    menu = false; 
+    START.pressed = false;
+  }
+
+  if (INSTRUCTIONS.pressed)
+    inst = true;
+
+  if (DOCUMENTATION.pressed)
+    docu = true;
+
+  if (AUTHOR.pressed)
+    auth = true;
+
+  if (BACK_B.pressed)
+  {
+    inst = false;
+    auth = false;
+    docu = false;
+  }
 }
 
 void anythingPressed()
@@ -452,10 +442,10 @@ void anythingPressed()
   presses.add(CONTROLS.pressed);
   //FLY_MODE.pressed = isPressed(FLY_MODE);
   //presses.add(FLY_MORE.pressed);
-  //CONTROLS.pressed = isPressed(CONTROLS);
-  //presses.add(CONTROLS.pressed);
-  //CONTROLS.pressed = isPressed(CONTROLS);
-  //presses.add(CONTROLS.pressed);
+  MODE_B.pressed = isPressed(MODE_B);
+  presses.add(MODE_B.pressed);
+  BACK_B.pressed = isPressed(BACK_B);
+  //presses.add(BACK_B.pressed);
 
   for (int i = 0; i < presses.size(); i++)
     if (presses.get(i))
@@ -493,86 +483,89 @@ void controls()
     camD = 4.1;
 
   // menu/instructions
-
-
-  // arm motion 
-  if (!keyboard && roll_up)
+  if (roll_up)
   {
-    // PHI
-    if (c_buttons[0].pressed) 
-      phi += da;
-    if (c_buttons[1].pressed)
-      phi -= da;
+   
+    
+    // arm motion 
+    if (!keyboard)
+    {   
+      // PHI
+      if (c_buttons[0].pressed) 
+        phi += da;
+      if (c_buttons[1].pressed)
+        phi -= da;
 
-    if (phi >= 2*PI)
-      phi = 0;
-    if (phi <= -2*PI)
-      phi = 0;  
+      if (phi >= 2*PI)
+        phi = 0;
+      if (phi <= -2*PI)
+        phi = 0;  
 
-    // THETA
-    if (c_buttons[2].pressed)
-      theta -= da;
-    if (c_buttons[3].pressed) 
-      theta += da;
+      // THETA
+      if (c_buttons[2].pressed)
+        theta -= da;
+      if (c_buttons[3].pressed) 
+        theta += da;
 
-    if (theta >= 7*PI/12)
-      theta = 7*PI/12;
-    if (theta <= -7*PI/12)
-      theta = -7*PI/12;
+      if (theta >= 7*PI/12)
+        theta = 7*PI/12;
+      if (theta <= -7*PI/12)
+        theta = -7*PI/12;
 
-    // PSI
-    if (c_buttons[4].pressed)
-      psi -= da;
-    if (c_buttons[5].pressed) 
-      psi += da;     
+      // PSI
+      if (c_buttons[4].pressed)
+        psi -= da;
+      if (c_buttons[5].pressed) 
+        psi += da;     
 
-    if (psi >= 2*PI)
-      psi = 0;
-    if (psi <= -2*PI)
-      psi = 0;
+      if (psi >= 2*PI)
+        psi = 0;
+      if (psi <= -2*PI)
+        psi = 0;
 
-    // ROLL
-    if (c_buttons[6].pressed) 
-      roll += da;
-    if (c_buttons[7].pressed)
-      roll -= da;
+      // ROLL
+      if (c_buttons[6].pressed) 
+        roll += da;
+      if (c_buttons[7].pressed)
+        roll -= da;
 
-    if (roll >= 2*PI)
-      roll = 0;
-    if (phi <= -2*PI)
-      roll = 0;  
+      if (roll >= 2*PI)
+        roll = 0;
+      if (phi <= -2*PI)
+        roll = 0;  
 
-    // PITCH
-    if (c_buttons[8].pressed)
-      pitch -= da;
-    if (c_buttons[9].pressed) 
-      pitch += da;
+      // PITCH
+      if (c_buttons[8].pressed)
+        pitch -= da;
+      if (c_buttons[9].pressed) 
+        pitch += da;
 
-    if (pitch >= PI/2)
-      pitch = PI/2;
-    if (pitch <= -PI/2)
-      pitch = -PI/2;
+      if (pitch >= PI/2)
+        pitch = PI/2;
+      if (pitch <= -PI/2)
+        pitch = -PI/2;
 
-    // YAW
-    if (c_buttons[10].pressed)
-      yaw += da;
-    if (c_buttons[11].pressed) 
-      yaw -= da;  
+      // YAW
+      if (c_buttons[10].pressed)
+        yaw += da;
+      if (c_buttons[11].pressed) 
+        yaw -= da;  
 
-    if (yaw >= PI/6)
-      yaw = PI/6;
-    if (yaw <= -PI/6)
-      yaw = -PI/6;
+      if (yaw >= PI/6)
+        yaw = PI/6;
+      if (yaw <= -PI/6)
+        yaw = -PI/6;
 
-    if (c_buttons[12].pressed)
-      robot.grip_size += 1;
-    if (c_buttons[13].pressed) 
-      robot.grip_size -= 1;  
+      if (c_buttons[12].pressed)
+        robot.grip_size += 1;
+      if (c_buttons[13].pressed) 
+        robot.grip_size -= 1;  
 
-    if (robot.grip_size >= robot.max_grip)
-      robot.grip_size = robot.max_grip;
-    if (robot.grip_size <= 0)
-      robot.grip_size = 0;
+      if (robot.grip_size >= robot.max_grip)
+        robot.grip_size = robot.max_grip;
+      if (robot.grip_size <= 0)
+        robot.grip_size = 0;
+    }
   }
 
   // mechanics
@@ -585,4 +578,70 @@ void controls()
    if(grip_size == 0 || grip_size == max_grip)
    grip_on = !grip_on; 
    */
+}
+
+void openMenu()
+{
+  background(0);
+  fill(120);
+  rect(width/2, height/2, width-100, height-100);
+
+  fill(220);
+  textSize(30);
+  text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
+  START.show();
+  INSTRUCTIONS.show();
+  DOCUMENTATION.show();
+  AUTHOR.show();
+
+  START.pressed = isPressed(START);
+  INSTRUCTIONS.pressed = isPressed(INSTRUCTIONS);
+  DOCUMENTATION.pressed = isPressed(DOCUMENTATION);
+  AUTHOR.pressed = isPressed(AUTHOR);
+
+  if (auth)
+    openAuthor();
+  if (inst)
+    openInstruction();
+  if (docu)
+    openDocumentation();
+}
+
+void openAuthor()
+{
+  background(0);
+  fill(120);
+  rect(width/2, height/2, width-100, height-100);
+
+  fill(220);
+  textSize(30);
+  text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
+
+  BACK_B.show();
+}
+
+void openInstruction()
+{
+  background(0);
+  fill(120);
+  rect(width/2, height/2, width-100, height-100);
+
+  fill(220);
+  textSize(30);
+  text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
+
+  BACK_B.show();
+}
+
+void openDocumentation()
+{
+  background(0);
+  fill(120);
+  rect(width/2, height/2, width-100, height-100);
+
+  fill(220);
+  textSize(30);
+  text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
+
+  BACK_B.show();
 }
