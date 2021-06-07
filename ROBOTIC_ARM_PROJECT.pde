@@ -155,8 +155,8 @@ void draw()
 
     pushMatrix();
     // keep the same reference frame for all the 
-    translate(-camCenter.x, -camCenter.y, - camCenter.z);
-    translate(width/2, height/2 + 150, 0);
+    //translate(-camCenter.x, -camCenter.y, - camCenter.z);
+    //translate(width/2, height/2 + 150, 0);
 
     // roof dome
     fill(0, 150, 255);
@@ -242,21 +242,52 @@ void panel()
     fill(240, 180);
     rect(80, 220, 160, 280);
     rect(240, 40, 160, 80);
-    textSize(12);
+    textSize(10);
     textAlign(CENTER, CENTER);
-    fill(0);
-
-    text("phi: " + toDegr(phi), 40, 100, 76, 38);
-    text("theta: "+ toDegr(theta), 40, 140, 76, 38 );
-    text("psi: "+ toDegr(psi), 40, 180, 76, 38);
-    text("roll: "+ toDegr(roll), 40, 220, 76, 38);
-    text("pitch: "+toDegr(pitch), 40, 260, 76, 38);
-    text("yaw: "+ toDegr(yaw), 40, 300, 76, 38);
-    text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
-
     MODE_B.show();
-    for (int i = 0; i < num_of_c_buttons; i++)
-      c_buttons[i].show();
+    RECORD.show();
+    fill(0);
+    
+    switch(mode_num)
+    {
+     case 0:
+      text("phi: " + toDegr(phi), 40, 100, 76, 38);
+      text("theta: "+ toDegr(theta), 40, 140, 76, 38 );
+      text("psi: "+ toDegr(psi), 40, 180, 76, 38);
+      text("roll: "+ toDegr(roll), 40, 220, 76, 38);
+      text("pitch: "+toDegr(pitch), 40, 260, 76, 38);
+      text("yaw: "+ toDegr(yaw), 40, 300, 76, 38);
+      text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      
+      for (int i = 0; i < num_of_c_buttons; i++)
+        c_buttons[i].show();
+       break;
+     case 1: 
+      
+      text("phi: " + toDegr(phi), 40, 100, 76, 38);
+      text("theta: "+ toDegr(theta), 40, 140, 76, 38 );
+      text("psi: "+ toDegr(psi), 40, 180, 76, 38);
+      text("roll: "+ toDegr(roll), 40, 220, 76, 38);
+      text("pitch: "+toDegr(pitch), 40, 260, 76, 38);
+      text("yaw: "+ toDegr(yaw), 40, 300, 76, 38);
+      text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      for(int i = 0; i < 6; i++)
+        rect(60,100+i*40, 80,40);
+        
+       c_buttons[12].show();
+       c_buttons[13].show();
+       break;
+     case 2: 
+       break;
+     case 3:
+       break;
+     case 4: 
+       break;
+     case 5: 
+       break;
+     default: 
+       break;
+    }
   }
 
   MagnGlass(width - 50, 44, "+");
@@ -285,8 +316,6 @@ void animation()
 
   pushMatrix();
   resetMatrix();
-  //translate(-width/2, -height/2+150, 0);
-  //translate(-camCenter.x, -camCenter.y, -camCenter.z);
   translate(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z);
   rotateX(robot.effector_orient.x);
   rotateY(robot.effector_orient.y);
@@ -485,12 +514,35 @@ void controls()
   // menu/instructions
   if (roll_up)
   {
-   
+    switch(mode_num)
+    {
     
     // arm motion 
-    if (!keyboard)
-    {   
-      // PHI
+    case 0: 
+      manual_control();  
+     break;
+    case 1:
+      euler_angles(); 
+       break;
+     case 2:
+      inverse_kinematics();
+       break;
+     case 3:
+      recorded_play();
+       break;
+     case 4:
+      automatic_mode();
+       break;
+     default:
+       break;
+    }
+  }
+  
+}
+
+void manual_control()
+{
+  // PHI
       if (c_buttons[0].pressed) 
         phi += da;
       if (c_buttons[1].pressed)
@@ -565,20 +617,49 @@ void controls()
         robot.grip_size = robot.max_grip;
       if (robot.grip_size <= 0)
         robot.grip_size = 0;
-    }
-  }
-
-  // mechanics
-  /*
-  if(grip_on)
-   grip_size -= 2;
-   else 
-   grip_size += 2;
-   
-   if(grip_size == 0 || grip_size == max_grip)
-   grip_on = !grip_on; 
-   */
 }
+
+void euler_angles()
+{
+  
+  
+  
+  
+  if (c_buttons[12].pressed)
+        robot.grip_size += 1;
+     if (c_buttons[13].pressed) 
+        robot.grip_size -= 1;  
+
+      if (robot.grip_size >= robot.max_grip)
+        robot.grip_size = robot.max_grip;
+      if (robot.grip_size <= 0)
+        robot.grip_size = 0;
+ 
+}
+
+void inverse_kinematics()
+{
+  // mouse mode (w/d)
+  // x,y,z
+  // 
+  //
+}
+
+void recorded_play()
+{
+  
+  
+  
+}
+
+void automatic_mode()
+{
+  
+  
+  
+  
+}
+
 
 void openMenu()
 {
@@ -589,6 +670,7 @@ void openMenu()
   fill(220);
   textSize(30);
   text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
+  
   START.show();
   INSTRUCTIONS.show();
   DOCUMENTATION.show();
