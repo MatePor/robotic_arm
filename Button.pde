@@ -1,7 +1,9 @@
 class button
 {
-  int x, y, w, h;
-  String title;
+  private int x, y, w, h;
+  public String title;
+  
+  // MAKE PRIVATE AND GET isPressed FUNCTION HERE
   boolean pressed; 
 
   button(int px, int py, int pw, int ph, String txt)
@@ -14,7 +16,7 @@ class button
     pressed = false;
   }
 
-  void show()
+  public void show()
   {
     if (pressed) 
     {  

@@ -1,7 +1,7 @@
 float phi, theta, psi, roll, pitch, yaw, da;
 PVector []angles;
 
-boolean grip_on, blocked;
+boolean grip_on, blocked, magnet;
 
 boolean roll_up, button_is_pressed, keyboard, automatic, 
   recording, inverse, menu, inst, docu, auth, mouse_follow, looking, moving, config;
@@ -43,8 +43,8 @@ void setup()
 
   // angles(position)
   phi = 0;
-  theta = PI/4;
-  psi = -5*PI/4;
+  theta = 0;//PI/4;
+  psi = 0;//-5*PI/4;
   roll = 0;
   pitch = 0;
   yaw = 0;
@@ -134,6 +134,7 @@ void setup()
   looking = false;
   moving = true;
   config = false;
+  magnet = false;
 }
 
 void draw()
@@ -315,14 +316,14 @@ void animation()
   robot.showArm();
 
   pushMatrix();
-  resetMatrix();
+  translate(robot.position.x, robot.position.y, robot.position.z);
   translate(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z);
   rotateX(robot.effector_orient.x);
   rotateY(robot.effector_orient.y);
   rotateZ(robot.effector_orient.z);
   fill(255, 0, 0);
   strokeWeight(0.1);
-  sphere(15);
+  sphere(30);
   popMatrix();
 
   for (int i = 0; i < num_of_things; i++)

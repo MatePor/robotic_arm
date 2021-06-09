@@ -9,7 +9,7 @@ class joint
     orient = rotations;
   }
 
-  void trans()
+  public void trans()
   {
     translate(pos.x, pos.y, pos.z);
     rotateX(orient.x);

@@ -2,15 +2,17 @@ class Arm
 {
   String ID;
   int grip_size,  max_grip;
-  float virt_size, dsize;
-  thing base, gripper;
-  joint []joints = new joint[6];
-  thing []segments = new thing[6];
+  private float virt_size, dsize;
+  private thing base, gripper, magnet;
+  private joint []joints = new joint[6];
+  private thing []segments = new thing[6];
   PVector []r = new PVector[6];
   PVector effector_pos, effector_orient;
   PVector position;
   PVector []effector_pos_history;
   PVector []move_history;
+  
+  public boolean magnetic;
 
   Arm(PVector []angles, PVector pos, String ID_, int max_grip_)
   {
@@ -21,6 +23,7 @@ class Arm
     grip_size = 0;
     virt_size = 0;
     dsize = 0.5;
+    magnetic = false;
     
     color grey = color(180);
     base = new thing(50, 0, -25, 0, 0, 0, 0, grey);
@@ -43,6 +46,7 @@ class Arm
     segments[5] = new thing(4, 10, 4, 0, -8, 0, 0, 0, 0, grey);
 
     gripper = new thing(8, 2, max_grip+2, 0, -14, 0, 0, 0, 0, grey);
+    magnet = new thing(10, 4, 10, 0, -15, 0, 0, 0, 0, grey);
     
     // decorations 
     PShape elem_1 = createShape(BOX, 18, 100, 8);
@@ -77,7 +81,7 @@ class Arm
   }
 
 
-  void updateArm(PVector []angles)
+  public void updateArm(PVector []angles)
   {
     PVector zeros = new PVector(0,0,0);
     effector_orient = zeros;
@@ -99,18 +103,22 @@ class Arm
       effector_orient.add(angles[i]);
     } 
 
-    //effector_pos.x = -80*cos(angles[1].z)*cos(angles[0].y)
+    effector_pos.x = +80*sin(angles[1].z)*cos(angles[0].y)
+    +75*sin(angles[1].z + angles[2].z)*cos(angles[0].y);
     //-80*cos(angles[2].z - angles[1].z)*cos(angles[0].y);
     
-    //effector_pos.y = -80+80*sin(-angles[1].z) + 75*sin(angles[1].z - angles[2].z);
+    effector_pos.y = -80-80*cos(angles[1].z) - 75*cos(angles[1].z + angles[2].z)
+     - 20*cos(angles[3].y)*cos(angles[1].z + angles[2].z + angles[4].z)+
+     20*sin(angles[3].y)*cos(angles[1].z + angles[2].z + angles[5].x);
     
-    //effector_pos.z = -80*cos(angles[1].z)*sin(-angles[0].y)
+    effector_pos.z = -80*sin(angles[1].z)*sin(angles[0].y)
+    -75*sin(angles[1].z + angles[2].z)*sin(angles[0].y);
     //-80*cos(angles[2].z - angles[1].z)*sin(-angles[0].y);
 
-    //effector_pos.add(new PVector(0, -12, 0));
+    // effector_pos.add(new PVector(0, -12, 0));
   }
 
-  void showArm()
+  public void showArm()
   {
     pushMatrix();
     translate(position.x, position.y, position.z);
@@ -120,26 +128,22 @@ class Arm
       joints[i].trans();
       segments[i].show();
     } 
-
-    gripper.show();
+ 
+    //angles[0].y
+    //angles[1].z 
+    //angles[2].z 
+    //angles[3].y
+    //angles[4].z 
+    //angles[5].x
+    
+    if(!magnetic)
+      gripper.show();
+    else 
+      magnet.show();
+    /*
     effector_pos.x = modelX(0,0,0);
     effector_pos.y = modelY(0,0,0);
     effector_pos.z = modelZ(0,0,0);
-    
-    /*
-    // gripper animation
-    stroke(0);
-    strokeWeight(0.5);
-    pushMatrix();
-   
-    translate(0, -grip_size/2, 4);
-    rotateX(PI/2);
-    rect(0, 0, 8, 8);
-
-    translate(0, 0, -grip_size);
-    rect(0, 0, 8, 8);
-
-    popMatrix();
     */
     popMatrix();
   }

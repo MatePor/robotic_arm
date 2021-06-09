@@ -42,7 +42,7 @@ class thing
     colour = c;
   }
 
-  void show()
+  public void show()
   {  
     pushMatrix();
     translate(pos.x, pos.y, pos.z);
@@ -58,7 +58,7 @@ class thing
     popMatrix();
   }
 
-  void update(PVector new_pos, PVector new_orient)
+  public void update(PVector new_pos, PVector new_orient)
   {  
     pos = new_pos;
     orient = new_orient;
