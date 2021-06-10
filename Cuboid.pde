@@ -1,7 +1,7 @@
 class thing
 {
   // position and size
-  PVector pos;
+ private PVector pos;
   PVector orient;
   PVector vel;
   int wid, hei, dep;
@@ -66,9 +66,10 @@ class thing
     popMatrix();
   }
 
-  public void update(PVector new_pos, PVector new_orient)
+  void update(PVector new_pos, PVector new_orient)
   {  
-    pos = new_pos;
-    orient = new_orient;
+    text("why",400,50);
+    pos = new PVector(new_pos.x, new_pos.y, new_pos.z);
+    orient = new PVector(new_orient.x, new_orient.y, new_orient.z);;
   }
 }

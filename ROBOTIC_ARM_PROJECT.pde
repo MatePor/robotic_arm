@@ -13,6 +13,7 @@ float camX, camY, camD;
 PVector camCenter;
 PImage roof;
 
+
 menu my_menu;
 thing things[];
 Arm robot;
@@ -69,7 +70,7 @@ void setup()
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
 
   // things
-  num_of_things = 2;
+  num_of_things = 1;
   things = new thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
@@ -81,7 +82,7 @@ void setup()
     {
       ok = true;  
       color rand_color = color(random(255), random(255), random(255));
-      test_thing = new thing(ran, int(random(-100, 100)), - ran/2, int(random(-100, 100)), 0, random(PI), 0, rand_color);
+      test_thing = new thing(ran, int(random(-100,100)), - ran/2, int(random(-100, 100)), 0, random(PI), 0, rand_color);
       for (int j = 0; j < i; j++)
         if (isColliding(test_thing, things[j]))
           ok = false;
@@ -152,7 +153,6 @@ void draw()
   lights();
 
   anythingPressed();
-  print("draw");
   if (menu_o)
   {
     my_menu.BACK_B.pressed = isPressed(my_menu.BACK_B);
@@ -163,6 +163,13 @@ void draw()
     //check_cursor();
     controls();
 
+
+    // physics and interaction
+    gravity();
+    
+    if(robot.magn_ON)
+       move_object();
+     
     pushMatrix();
     cam();
 
@@ -183,7 +190,14 @@ void draw()
     animation();
     popMatrix();
     popMatrix();
-
+ 
+    // debugging
+    /*
+    textSize(30);
+    text(str(things[0].pos.y), 400, 50);
+    text(str(things[0].vel.y), 400, 100); 
+    text(str(robot.magn_ON), 400, 150);
+    */
     //interface
     panel();
   }
@@ -490,14 +504,18 @@ void mouseReleased()
    if(robot.magnetic && MGNT_ON.pressed)
    {
         robot.magn_ON = !robot.magn_ON;
+        
         if(!robot.magn_ON)
         {   
           for(int i = 0; i < num_of_things; i++)
               things[i].caught = false;
+              
           MGNT_ON.title = "MGN -ON";
          }
          else 
          MGNT_ON.title = "MGN -OFF";
+         
+         MGNT_ON.pressed = false;
    }   
    
   }
@@ -597,11 +615,6 @@ void controls()
 
   if (camD > 4.1 )
     camD = 4.1;
- 
-  // physics and interaction
-  
-  move_object();
-  gravity();
   
   // menu/instructions
   if (roll_up)
@@ -819,24 +832,22 @@ void automatic_mode()
 }
 
 void move_object()
-{
-  
+{ 
   for(int i = 0; i < num_of_things; i++)
   {
     thing A = things[i];
     float r = sqrt(3*(A.dep/2)*(A.dep/2));
-
     float distance = sqrt(pow(A.pos.x-robot.effector_pos.x, 2)+pow(A.pos.y-robot.effector_pos.y, 2)+pow(A.pos.z-robot.effector_pos.z, 2));
 
-    if (distance < r + 20 && robot.magn_ON)
+    if (distance < r + 20)
     {
-        PVector new_pos = robot.effector_pos;
+        //PVector new_pos = robot.effector_pos;
         //new_pos.y ;
         //new_pos.z calculate some angle and 
         // move the object towards its original position
-        // so that it can levitate in a magnetic field
+        // so that it can levitate in a magnetic field     
         
-        things[i].update(new_pos, robot.effector_orient); 
+        things[i].update(robot.effector_pos,robot.effector_orient); 
         things[i].caught = true;
     } 
    }   
@@ -844,21 +855,22 @@ void move_object()
   
 void gravity()
 {
-  PVector g = new PVector(0,0.3,0);
+  float g = 0.05;
  
   for(int i = 0; i < num_of_things; i++)
   {
-    print(things[i].pos.y);
     if(things[i].pos.y < -things[i].hei/2 && !things[i].caught)
-    {
-        things[i].vel.add(g);
-        things[i].pos.add(things[i].vel);
+    {   
+        things[i].vel.y += g; 
+        things[i].pos.y += things[i].vel.y;
     }
     else
     {
        things[i].pos.y = -things[i].hei/2;
        things[i].vel = new PVector(0,0,0);
     } 
+   
+   
   }   
   
   
