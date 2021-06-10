@@ -12,7 +12,7 @@ class Arm
   PVector []effector_pos_history;
   PVector []move_history;
   
-  public boolean magnetic;
+  public boolean magnetic, magn_ON;
 
   Arm(PVector []angles, PVector pos, String ID_, int max_grip_)
   {
@@ -24,6 +24,7 @@ class Arm
     virt_size = 0;
     dsize = 0.5;
     magnetic = false;
+    magn_ON = false;
     
     color grey = color(180);
     base = new thing(50, 0, -25, 0, 0, 0, 0, grey);

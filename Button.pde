@@ -4,6 +4,11 @@ class button
   public String title;
   
   // MAKE PRIVATE AND GET isPressed FUNCTION HERE
+  // isPressed needs to be added here so that 
+  // everything checking whether is clicked can
+  // be done with one line od code 
+  // not as it is now
+  
   boolean pressed; 
 
   button(int px, int py, int pw, int ph, String txt)

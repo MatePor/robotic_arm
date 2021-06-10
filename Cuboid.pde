@@ -3,9 +3,11 @@ class thing
   // position and size
   PVector pos;
   PVector orient;
+  PVector vel;
   int wid, hei, dep;
   color colour;
   PShape obj, cuboid;
+  boolean caught;
 
 
   thing(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
@@ -14,7 +16,10 @@ class thing
 
     pos = new PVector(px, py, pz);
     orient = new PVector(xangle, yangle, zangle);
-
+    vel = new PVector(0,0,0);
+    
+    caught = false;
+    
     dep = param;
     wid = param;
     hei = param;
@@ -31,7 +36,10 @@ class thing
 
     pos = new PVector(px, py, pz);
     orient = new PVector(xangle, yangle, zangle);
-
+    vel = new PVector(0,0,0);
+    
+    caught = false;
+    
     wid = pwidth;
     hei = pheight;
     dep = pdepth;
