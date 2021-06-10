@@ -70,7 +70,7 @@ void setup()
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
 
   // things
-  num_of_things = 1;
+  num_of_things = 300;
   things = new thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
@@ -82,7 +82,7 @@ void setup()
     {
       ok = true;  
       color rand_color = color(random(255), random(255), random(255));
-      test_thing = new thing(ran, int(random(-100,100)), - ran/2, int(random(-100, 100)), 0, random(PI), 0, rand_color);
+      test_thing = new thing(ran, int(random(-100,100)), int(random(-1000,-100)), int(random(-100, 100)), 0, random(PI), 0, rand_color);
       for (int j = 0; j < i; j++)
         if (isColliding(test_thing, things[j]))
           ok = false;
@@ -855,7 +855,7 @@ void move_object()
   
 void gravity()
 {
-  float g = 0.05;
+  float g = 0.75;
  
   for(int i = 0; i < num_of_things; i++)
   {

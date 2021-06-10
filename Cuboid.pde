@@ -68,8 +68,11 @@ class thing
 
   void update(PVector new_pos, PVector new_orient)
   {  
-    text("why",400,50);
-    pos = new PVector(new_pos.x, new_pos.y, new_pos.z);
-    orient = new PVector(new_orient.x, new_orient.y, new_orient.z);;
+    pos.x = new_pos.x;
+    pos.y = new_pos.y;
+    pos.z = new_pos.z;
+    orient.x = new_orient.x;
+    orient.y = new_orient.y;
+    orient.z = new_orient.z;
   }
 }
