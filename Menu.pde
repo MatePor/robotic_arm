@@ -1,15 +1,15 @@
-class menu
+class Menu
 {
-  button START, MENU_B, INSTRUCTIONS, AUTHOR, DOCUMENTATION, BACK_B;
+  Button START, MENU_B, INSTRUCTIONS, AUTHOR, DOCUMENTATION, BACK_B;
   
-  menu()
+  Menu()
   {
-  START = new button(width/2, height/3, width/2, 70, "START");
-  INSTRUCTIONS = new button(width/2, height/3 + 90, width/2, 70, "INSTRUCTIONS");
-  DOCUMENTATION = new button(width/2, height/3 + 180, width/2, 70, "DOCUMENTATION");
-  AUTHOR = new button(width/2, height/3 + 270, width/2, 70, "AUTHOR");
-  BACK_B = new button(100, 100, 80, 80, "BACK");
+    START = new Button(width/2, height/3, width/2, 70, "START");
+    INSTRUCTIONS = new Button(width/2, height/3 + 90, width/2, 70, "INSTRUCTIONS");
+    DOCUMENTATION = new Button(width/2, height/3 + 180, width/2, 70, "DOCUMENTATION");
+    AUTHOR = new Button(width/2, height/3 + 270, width/2, 70, "AUTHOR");
     
+    BACK_B = new Button(100, 100, 80, 80, "BACK");
   }
   
   public void openMenu()
@@ -22,17 +22,15 @@ class menu
   textSize(30);
   text("* Robotic Arm Simulator - 2021 *", width/2, 100, width*2/3, 300);
   
-  println("work");
-  
   START.show();
   INSTRUCTIONS.show();
   DOCUMENTATION.show();
   AUTHOR.show();
   
-  START.pressed = isPressed(START);
-  INSTRUCTIONS.pressed = isPressed(INSTRUCTIONS);
-  DOCUMENTATION.pressed = isPressed(DOCUMENTATION);
-  AUTHOR.pressed = isPressed(AUTHOR);
+  START.isPressed();
+  INSTRUCTIONS.isPressed();
+  DOCUMENTATION.isPressed();
+  AUTHOR.isPressed();
 
   if (auth)
     openAuthor();

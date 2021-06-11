@@ -1,40 +1,30 @@
-class Button
+/*class Button extends TextArea 
 {
-  private int x, y, w, h;
+  String angle;
   
-  public String title;  
-  public boolean pressed; 
-
-  Button(int px, int py, int pw, int ph, String txt)
-  {
-    x = px;
-    y = py;
-    w = pw;
-    h = ph;
-    title = txt;
-    pressed = false;
+  TextArea(int px, int py, int pw, int ph, String txt, String txt2) {
+    super(px, py, pw, ph, txt); 
+    angle = txt2;
   }
-  
-  public void isPressed()
+
+ public void isPressed()
   {
     if (mousePressed && mouseX > x-w/2 && mouseX < x+ w/2 
       && mouseY > y - h/2 && mouseY < y + h/2)  
-      pressed = true;  
-    else 
-      pressed = false;
+      pressed = !pressed;  
   }
-
+ 
   public void show()
   {
-    if (pressed) 
+    if(pressed) 
     {  
       strokeWeight(4);
-      fill(90, 180);
+      fill(255, 180);
     } 
     else
     {  
       strokeWeight(2);
-      fill(180, 180);
+      fill(220, 180);
     }
     
     rect(x, y, w, h); 
@@ -47,4 +37,4 @@ class Button
       text(title, x, y, w, h);
     }
   }
-}
+} */

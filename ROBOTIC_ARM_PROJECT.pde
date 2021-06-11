@@ -1,26 +1,33 @@
-float phi, theta, psi, roll, pitch, yaw, da;
-float DES_phi, DES_theta, DES_psi, DES_roll, DES_pitch, DES_yaw;
 PVector []angles;
+float []ph, DEST_ph;
+float da;
+String [] angle_names = {"ph1:", "ph2:", "ph3:", "ph4:", "ph5:", "ph6:"};
 
-boolean grip_on, blocked, magnet;
+int mode_num;
+String []mode_names = {"MANUAL_B", "INPUT_A", "INVERSE_K", "RECORDED_P", "AUTOMATIC"};
 
-boolean roll_up, button_is_pressed, keyboard, automatic, 
+ArrayList <PVector> memory_A = new ArrayList<PVector>();
+ArrayList <PVector> memory_B = new ArrayList<PVector>();
+ArrayList <Float> memory_C = new ArrayList<Float>();
+
+boolean grip_on, blocked;
+
+boolean roll_up, button_is_pressed, keyboard, automatic, continuous,
   recording, inverse, menu_o, inst, docu, auth, mouse_follow, looking, moving, config;
 
 int num_of_things, num_of_c_buttons;
+int range;   
 
 float camX, camY, camD;
 PVector camCenter;
 PImage roof;
 
-
-menu my_menu;
-thing things[];
+Menu my_menu;
+Thing []things;
 Arm robot;
-button c_buttons[]; 
-button MOVE_B, MGNT_ON, MENU_B, FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT, INV_KIN, RECORD, MODE_B, CH_EFF;
-int mode_num;
-String []mode_names = {"MANUAL_B", "EULER_A", "INVERSE_K", "RECORDED_P", "AUTOMATIC"};
+Button []C_BUTTONS, TXT_A; 
+Button MOVE_B, MGNT_ON, MENU_B, FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT, 
+INV_KIN, RECORD, MODE_B, CH_EFF, KEY_BUT, PLAY_R, CONT_B, APPLY, CLR_M;
 
 void setup()
 {
@@ -29,8 +36,13 @@ void setup()
   //surface.setLocation(30, 30);
   rectMode(CENTER);
   //roof = loadImage("roof.jpg");
-
-  // INITIALIZE VARIABLES
+  
+  textFont(createFont("Arial", 100));
+  
+  // create menu object
+  my_menu = new Menu();
+  
+  // --------- INITIALIZE VARIABLES -----------------
   // camera position angles and distance
   camX = 0;
   camY = 0;
@@ -44,21 +56,24 @@ void setup()
   blocked = false;
 
   // angles(position)
-  phi = 0;
-  theta = PI/4;
-  psi = -5*PI/4;
-  roll = 0;
-  pitch = 0;
-  yaw = 0;
+  ph = new float[6];
+  DEST_ph = new float[6];
+  
+  ph[0] = 0;
+  ph[1] = PI/4;
+  ph[2] = -5*PI/4;
+  ph[3] = 0;
+  ph[4] = 0;
+  ph[5] = 0;
+ 
+  DEST_ph[0] = 0;
+  DEST_ph[1] = PI/4;
+  DEST_ph[2] = -5*PI/4;
+  DEST_ph[3] = 0;
+  DEST_ph[4] = 0;
+  DEST_ph[5] = 0;
+  
   mode_num = 0;
-  
-  DES_phi = 0;
-  DES_theta = 0;
-  DES_psi = 0;
-  DES_roll = 0;
-  DES_pitch = 0;
-  DES_yaw = 0;
-  
   angles = new PVector[6];
   for (int i = 0; i < 6; i++)
     angles[i] = new PVector(0, 0, 0);
@@ -69,20 +84,23 @@ void setup()
   // create an arm
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
 
-  // things
-  num_of_things = 300;
-  things = new thing[num_of_things];
+  // things (little boxes falling from the sky)
+  range = 100;
+  num_of_things = 600;
+  things = new Thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
     int ran = int(random(10, 24));
     boolean ok;
-    thing test_thing;
+    Thing test_thing;
 
     do
     {
       ok = true;  
       color rand_color = color(random(255), random(255), random(255));
-      test_thing = new thing(ran, int(random(-100,100)), int(random(-1000,-100)), int(random(-100, 100)), 0, random(PI), 0, rand_color);
+      test_thing = new Thing(ran, int(random(-range,range)), int(random(-10000,-100)), int(random(-range, range)),
+      0, random(PI), 0, rand_color);
+      
       for (int j = 0; j < i; j++)
         if (isColliding(test_thing, things[j]))
           ok = false;
@@ -95,43 +113,45 @@ void setup()
     things[i] = test_thing;
   }
 
-  // buttons
-
-  MENU_B = new button(80, 20, 160, 40, "MENU");
+  // -------------------- BUTTONS ------------------
+  MENU_B = new Button(80, 20, 160, 40, "MENU");               // back to menu
+  ZOOM_IN = new Button(width - 47, 54, 56, 70, ""); 
+  ZOOM_OUT = new Button(width - 47, 143, 56, 70, "");
 
   //FLY = new button(240, 20, 160, 40, "FLY MODE");
-  RECORD = new button(240, 20, 160, 40, "RECORD");
-  MODE_B = new button(240, 60, 160, 40, "MANUAL");
-  CH_EFF = new button(240, 100, 160, 40, "CHANGE EFFECTOR");
-  MOVE_B = new button(240, 140, 160, 40, "MOVE");
-  MGNT_ON = new button(240, 180, 160, 40, "MAGN ON");
+  
+  CONTROLS = new Button(80, 60, 160, 40, "CONTROLS");          // control panel ON/OFF
+  RECORD = new Button(240, 20, 160, 40, "RECORD");             // record START/STOP
+  MODE_B = new Button(240, 60, 160, 40, "MANUAL_B");           // change robot working mode
+  CH_EFF = new Button(240, 100, 160, 40, "CHANGE EFFECTOR");   // self-explanatory
+  KEY_BUT = new Button(240, 140, 160, 40, "KEYBOARD");         // change input between keyboard and button
+  MOVE_B = new Button(240, 180, 160, 40, "MOVE");              // emable robot to move
   
   
+  MGNT_ON = new Button(80, 340, 160, 40, "MAGN -OFF"); // magnet ON/OFF
+  
+  PLAY_R = new Button(80, 220, 160, 40, "PLAY_R");
+  CONT_B = new Button(125, 155, 60, 60, "cont.");
+  CLR_M = new Button(80, 340, 160, 40, "CLR DATA");
+  
+  APPLY = new Button(80, 340, 160, 40, "APPLY");
+  
+  // control buttons (changing variables values)
   num_of_c_buttons = 14;
-  button_is_pressed = false;
-  c_buttons = new button[num_of_c_buttons];
-
-  // zoom c_buttons
-  ZOOM_IN = new button(width - 47, 54, 56, 70, ""); 
-  ZOOM_OUT = new button(width - 47, 143, 56, 70, "");
-
-  // control c_buttons
+  button_is_pressed = false;              
+  C_BUTTONS = new Button[num_of_c_buttons];
+  
   int k = 0;
   for (int i = 0; i < num_of_c_buttons; i++)
   {
-    c_buttons[i] = new button(100 +(i%2)*40, 100+40*k, 40, 40, (i%2==0)?"+":"-");
+    C_BUTTONS[i] = new Button(100 +(i%2)*40, 100+40*k, 40, 40, (i%2==0)?"+":"-");
 
     if (i%2 == 1)
       k++;
   }
 
-  // control ON/OFF
-  CONTROLS = new button(80, 60, 160, 40, "CONTROLS");
-
+  // control booleans
   roll_up = false;
-
-  my_menu = new menu();
-  // control booleans (switching modes)
   menu_o = true;
   inst = false;
   docu = false;
@@ -142,9 +162,9 @@ void setup()
   inverse = false;
   mouse_follow = false;
   looking = false;
-  moving = true;
+  moving = false;
+  continuous = false;
   config = false;
-  magnet = false;
 }
 
 void draw()
@@ -155,38 +175,23 @@ void draw()
   anythingPressed();
   if (menu_o)
   {
-    my_menu.BACK_B.pressed = isPressed(my_menu.BACK_B);
+    my_menu.BACK_B.isPressed();
     my_menu.openMenu();
   }
   else
   { 
     //check_cursor();
     controls();
-
-
-    // physics and interaction
-    gravity();
     
-    if(robot.magn_ON)
-       move_object();
-     
     pushMatrix();
     cam();
-
     pushMatrix();
     // keep the same reference frame for all the 
     //translate(-camCenter.x, -camCenter.y, - camCenter.z);
     //translate(width/2, height/2 + 150, 0);
 
-    // roof dome
-    translate(0,150,0);
-    fill(0, 150, 255);
-    noStroke();
-    PShape dome = createShape(SPHERE, 1500);
-    //dome.disableStyle();
-    //dome.setTexture(roof);
-    shape(dome);
-
+    drawLab();
+  
     animation();
     popMatrix();
     popMatrix();
@@ -236,6 +241,7 @@ void mouseWheel(MouseEvent event)
 
 void cam()
 {
+  // camera position and movement
   if (keyPressed)
   {
     if (key == 'W' || key == 'w')
@@ -258,9 +264,37 @@ void cam()
   scale(camD);
 }
 
+void keyPressed()
+{
+  
+  if(keyboard)
+  {
+    String new_str = "";
+    
+    switch(key)
+    {
+      case '0': new_str += "0"; break;
+      case '1': new_str += "1"; break;
+      case '2': new_str += "2"; break;
+      case '3': new_str += "3"; break;
+      case '4': new_str += "4"; break;
+      case '5': new_str += "5"; break;
+      case '6': new_str += "6"; break;
+      case '7': new_str += "7"; break;
+      case '8': new_str += "8"; break;
+      case '9': new_str += "9"; break;
+      case BACKSPACE: new_str = new_str.substring(0,new_str.length() - 2); break;
+      default: break;
+    }
+  }
+  
+}
+
 void panel()
 {
-  // INTERFACE
+  // -------- INTERFACE -----------
+  // drawing interface, buttons and messages depending on robot's mode
+  
   noFill();
   strokeWeight(2);
   stroke(0);
@@ -270,64 +304,96 @@ void panel()
     fill(240, 180);
     rect(80, 220, 160, 280);
     rect(240, 40, 160, 80);
-    textSize(10);
-    textAlign(CENTER, CENTER);
+    
     MODE_B.show();
     RECORD.show();
     CH_EFF.show();
     if(robot.magnetic)
       MGNT_ON.show();
-      
+    
+    textSize(13);
     fill(0);
     
     switch(mode_num)
     {
      case 0:
-      text("phi: " + toDegr(phi), 40, 100, 76, 38);
-      text("theta: "+ toDegr(theta), 40, 140, 76, 38 );
-      text("psi: "+ toDegr(psi), 40, 180, 76, 38);
-      text("roll: "+ toDegr(roll), 40, 220, 76, 38);
-      text("pitch: "+toDegr(pitch), 40, 260, 76, 38);
-      text("yaw: "+ toDegr(yaw), 40, 300, 76, 38);
-      text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      for(int i = 0; i < 6; i++)
+      {
+        textAlign(LEFT, CENTER);
+        text(angle_names[i], 20, 100+i*40, 34, 38);
+        textAlign(RIGHT, CENTER);
+        text(toDegr(ph[i]), 52, 100+i*40, 44, 38);
+      }
       
-      for (int i = 0; i < num_of_c_buttons; i++)
-        c_buttons[i].show();
+      if(!robot.magnetic)
+        text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      
+      for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
+        C_BUTTONS[i].show();
        break;
+       
      case 1: 
       MOVE_B.show();
-      text("phi: " + toDegr(DES_phi), 40, 100, 76, 38);
-      text("theta: "+ toDegr(DES_theta), 40, 140, 76, 38 );
-      text("psi: "+ toDegr(DES_psi), 40, 180, 76, 38);
-      text("roll: "+ toDegr(DES_roll), 40, 220, 76, 38);
-      text("pitch: "+toDegr(DES_pitch), 40, 260, 76, 38);
-      text("yaw: "+ toDegr(DES_yaw), 40, 300, 76, 38);
-      text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      KEY_BUT.show();
+
+      if(!keyboard)
+      {  for(int i = 0; i < 6; i++)
+        {
+          textAlign(LEFT, CENTER);
+          text(angle_names[i], 20, 100+i*40, 34, 38);
+          textAlign(RIGHT, CENTER);
+          text(toDegr(DEST_ph[i]), 52, 100+i*40, 44, 38);
+        }
       
-      for (int i = 0; i < num_of_c_buttons; i++)
-        c_buttons[i].show();
+      if(!robot.magnetic)
+        text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);;
       
-      //for(int i = 0; i < 6; i++)
-      //{
-         //stroke(0);
-         //fill(255);
-         //rect(60,100+i*40, 80,40);   
-     // }
+      for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
+        C_BUTTONS[i].show();
+      }
+      else
+      {
+        for(int i = 0; i < 6; i++)
+            TXT_A[i].show();        
         
+        
+      }
+      
        if(!robot.magnetic)
        {
-       c_buttons[12].show();
-       c_buttons[13].show();
+         C_BUTTONS[12].show();
+         C_BUTTONS[13].show();
        }
        break;
+       
      case 2: 
+       MOVE_B.show();
+       KEY_BUT.show();
+        for(int i = 0; i < 6; i++)
+      {
+        textAlign(LEFT, CENTER);
+        text(angle_names[i], 20, 100+i*40, 34, 38);
+        textAlign(RIGHT, CENTER);
+        text(toDegr(ph[i]), 52, 100+i*40, 44, 38);
+      }
+      
+      if(!robot.magnetic)
+        text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      
+      for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
+        C_BUTTONS[i].show();
        break;
+       
      case 3:
+       PLAY_R.show();
+       CONT_B.show();
+       CLR_M.show();
        break;
+       
      case 4: 
+      
        break;
-     case 5: 
-       break;
+       
      default: 
        break;
     }
@@ -345,16 +411,21 @@ void panel()
 
 void animation()
 {
-  // FLOOR AND OBJECTS ---------------  
-  pushMatrix();
-  rotateX(-PI/2);
-  fill(200, 150);
-  ellipse(0, 0, 3000, 3000);
-  popMatrix();
-
+  // physics and interaction
+  gravity();
+    
+  if(robot.magn_ON)
+    move_object();
+   
   update_angles();
   robot.updateArm(angles);
   robot.showArm();
+  
+  for (int i = 0; i < num_of_things; i++)
+  { 
+      things[i].pos.add(things[i].vel);
+      things[i].show();
+  }
 
   pushMatrix();
   translate(robot.position.x, robot.position.y, robot.position.z);
@@ -367,22 +438,9 @@ void animation()
   sphere(30);
   popMatrix();
 
-  for (int i = 0; i < num_of_things; i++)
-  {
-    //things[i].update(robot.effector_pos, robot.effector_orient);
-    things[i].show();
-  }
 } 
 
-boolean isPressed(button b)
-{
-  if (mousePressed && mouseX > b.x-b.w/2 && mouseX < b.x+ b.w/2 
-    && mouseY > b.y - b.h/2 && mouseY < b.y + b.h/2)  
-    return true;   
-  return false;
-}
-
-boolean isColliding(thing A, thing B)
+boolean isColliding(Thing A, Thing B)
 {
   /*if((A.x + A.obj_size/2 > B.x - B.obj_size/2 && 
    A.x + A.obj_size/2 < B.x + B.obj_size/2)||
@@ -421,7 +479,6 @@ void MagnGlass(int x, int y, String sign)
   line(x+15*cos(-PI/3), y+15*sin(PI/3), x+35*cos(-PI/3), y+35*sin(PI/3));
   strokeWeight(1);
   textSize(25);
-  textAlign(CENTER, CENTER);
   rectMode(CENTER);
   fill(0);
   text(sign, x, y, 30, 30);
@@ -445,22 +502,22 @@ void check_cursor()
 
 void update_angles()
 {
-  angles[0].y = phi;
-  angles[1].z = theta;
-  angles[2].z = psi;
-  angles[3].y = roll;
-  angles[4].z = pitch;
-  angles[5].x = yaw;
+  angles[0].y = ph[0];
+  angles[1].z = ph[1];
+  angles[2].z = ph[2];
+  angles[3].y = ph[3];
+  angles[4].z = ph[4];
+  angles[5].x = ph[5];
 }
 
 void move_angles()
 {
-  phi += signum(DES_phi-phi)*da;
-  theta += signum(DES_theta-theta)*da;
-  psi += signum(DES_psi-psi)*da;
-  roll += signum(DES_roll-roll)*da;
-  pitch += signum(DES_pitch-pitch)*da;
-  yaw += signum(DES_yaw-yaw)*da;
+  ph[0] += signum(DEST_ph[0]-ph[0])*da/2;
+  ph[1] += signum(DEST_ph[1]-ph[1])*da/2;
+  ph[2] += signum(DEST_ph[2]-ph[2])*da/2;
+  ph[3] += signum(DEST_ph[3]-ph[3])*da/2;
+  ph[4] += signum(DEST_ph[4]-ph[4])*da/2;
+  ph[5] += signum(DEST_ph[5]-ph[5])*da/2;
 }
 
 int signum(float x)
@@ -501,6 +558,15 @@ void mouseReleased()
       robot.magnetic = !robot.magnetic;
     }
     
+   if((mode_num == 1 || mode_num == 2) && KEY_BUT.pressed)
+   {
+     keyboard = !keyboard;
+     if(keyboard)
+       KEY_BUT.title = "KEYBOARD";
+     else
+       KEY_BUT.title = "BUTTONS";
+   }
+   
    if(robot.magnetic && MGNT_ON.pressed)
    {
         robot.magn_ON = !robot.magn_ON;
@@ -510,10 +576,10 @@ void mouseReleased()
           for(int i = 0; i < num_of_things; i++)
               things[i].caught = false;
               
-          MGNT_ON.title = "MGN -ON";
+          MGNT_ON.title = "MGN -OFF";
          }
          else 
-         MGNT_ON.title = "MGN -OFF";
+         MGNT_ON.title = "MGN -ON";
          
          MGNT_ON.pressed = false;
    }   
@@ -552,33 +618,52 @@ void mouseReleased()
 
 void anythingPressed()
 {
+  // check whether any acitve button is pressed right now
   button_is_pressed = false;
   ArrayList <Boolean> presses = new ArrayList<Boolean>();
 
   for (int i = 0; i < num_of_c_buttons; i++)
   {
-    c_buttons[i].pressed = isPressed(c_buttons[i]);
-    presses.add(c_buttons[i].pressed);
+    C_BUTTONS[i].isPressed();
+    presses.add(C_BUTTONS[i].pressed);
   }
 
-  ZOOM_IN.pressed = isPressed(ZOOM_IN);
+  ZOOM_IN.isPressed();
   presses.add(ZOOM_IN.pressed);
-  ZOOM_OUT.pressed = isPressed(ZOOM_OUT);
+  ZOOM_OUT.isPressed();
   presses.add(ZOOM_OUT.pressed);
-  MENU_B.pressed = isPressed(MENU_B);
+  MENU_B.isPressed();
   presses.add(MENU_B.pressed);
-  CONTROLS.pressed = isPressed(CONTROLS);
+  CONTROLS.isPressed();
   presses.add(CONTROLS.pressed);
-  MOVE_B.pressed = isPressed(MOVE_B);
+  MOVE_B.isPressed();
   presses.add(MOVE_B.pressed);
-  MODE_B.pressed = isPressed(MODE_B);
+  MODE_B.isPressed();
   presses.add(MODE_B.pressed);
+  
+  if(mode_num == 3)
+  {
+    PLAY_R.isPressed();
+    presses.add(PLAY_R.pressed);
+    CONT_B.isPressed();
+    presses.add(CONT_B.pressed);
+    CLR_M.isPressed();
+    presses.add(CLR_M.pressed);
+  }
+  
   if(robot.magnetic)
   {    
-    MGNT_ON.pressed = isPressed(MGNT_ON);
+    MGNT_ON.isPressed();
        presses.add(MGNT_ON.pressed);
   }
-  CH_EFF.pressed = isPressed(CH_EFF);
+  
+  if(mode_num == 1 || mode_num == 2)
+  {
+    KEY_BUT.isPressed();
+    presses.add(KEY_BUT.pressed);
+  }
+  
+  CH_EFF.isPressed();
   presses.add(CH_EFF.pressed);
   
   for (int i = 0; i < presses.size(); i++)
@@ -650,75 +735,75 @@ void controls()
 
 void manual_control()
 {
-  // PHI
-      if (c_buttons[0].pressed) 
-        phi += da;
-      if (c_buttons[1].pressed)
-        phi -= da;
+    // PHI
+      if (C_BUTTONS[0].pressed) 
+        ph[0] += da;
+      if (C_BUTTONS[1].pressed)
+        ph[0] -= da;
 
-      if (phi >= 2*PI)
-        phi = 0;
-      if (phi <= -2*PI)
-        phi = 0;  
+      if (ph[0] >= 2*PI)
+        ph[0] = 0;
+      if (ph[0] <= -2*PI)
+        ph[0] = 0;  
 
       // THETA
-      if (c_buttons[2].pressed)
-        theta -= da;
-      if (c_buttons[3].pressed) 
-        theta += da;
+      if (C_BUTTONS[2].pressed)
+        ph[1] += da;
+      if (C_BUTTONS[3].pressed) 
+        ph[1] -= da;
 
-      if (theta >= 7*PI/12)
-        theta = 7*PI/12;
-      if (theta <= -7*PI/12)
-        theta = -7*PI/12;
+      if (ph[1] >= 7*PI/12)
+        ph[1] = 7*PI/12;
+      if (ph[1] <= -7*PI/12)
+        ph[1] = -7*PI/12;
 
       // PSI
-      if (c_buttons[4].pressed)
-        psi -= da;
-      if (c_buttons[5].pressed) 
-        psi += da;     
+      if (C_BUTTONS[4].pressed)
+        ph[2] -= da;
+      if (C_BUTTONS[5].pressed) 
+        ph[2] += da;     
 
-      if (psi >= 2*PI)
-        psi = 0;
-      if (psi <= -2*PI)
-        psi = 0;
+      if (ph[2] >= 2*PI)
+        ph[2] = 0;
+      if (ph[2] <= -2*PI)
+        ph[2] = 0;
 
       // ROLL
-      if (c_buttons[6].pressed) 
-        roll += da;
-      if (c_buttons[7].pressed)
-        roll -= da;
+      if (C_BUTTONS[6].pressed) 
+        ph[3] += da;
+      if (C_BUTTONS[7].pressed)
+        ph[3] -= da;
 
-      if (roll >= 2*PI)
-        roll = 0;
-      if (phi <= -2*PI)
-        roll = 0;  
+      if (ph[3] >= 2*PI)
+        ph[3] = 0;
+      if (ph[3] <= -2*PI)
+        ph[3] = 0;  
 
       // PITCH
-      if (c_buttons[8].pressed)
-        pitch -= da;
-      if (c_buttons[9].pressed) 
-        pitch += da;
+      if (C_BUTTONS[8].pressed)
+        ph[4] -= da;
+      if (C_BUTTONS[9].pressed) 
+        ph[4] += da;
 
-      if (pitch >= PI/2)
-        pitch = PI/2;
-      if (pitch <= -PI/2)
-        pitch = -PI/2;
+      if (ph[4] >= PI/2)
+        ph[4] = PI/2;
+      if (ph[4] <= -PI/2)
+        ph[4] = -PI/2;
 
       // YAW
-      if (c_buttons[10].pressed)
-        yaw += da;
-      if (c_buttons[11].pressed) 
-        yaw -= da;  
+      if (C_BUTTONS[10].pressed)
+        ph[5] += da;
+      if (C_BUTTONS[11].pressed) 
+        ph[5] -= da;  
 
-      if (yaw >= PI/6)
-        yaw = PI/6;
-      if (yaw <= -PI/6)
-        yaw = -PI/6;
+      if (ph[5] >= PI/6)
+        ph[5] = PI/6;
+      if (ph[5] <= -PI/6)
+        ph[5] = -PI/6;
 
-      if (c_buttons[12].pressed)
+      if (C_BUTTONS[12].pressed)
         robot.grip_size += 1;
-      if (c_buttons[13].pressed) 
+      if (C_BUTTONS[13].pressed) 
         robot.grip_size -= 1;  
 
       if (robot.grip_size >= robot.max_grip)
@@ -730,75 +815,75 @@ void manual_control()
 void euler_angles()
 {
    
-   // PHI
-      if (c_buttons[0].pressed) 
-        DES_phi += da;
-      if (c_buttons[1].pressed)
-        DES_phi -= da;
+     // PHI
+      if (C_BUTTONS[0].pressed) 
+        DEST_ph[0] += da;
+      if (C_BUTTONS[1].pressed)
+        DEST_ph[0] -= da;
 
-      if (phi >= 2*PI)
-        DES_phi = 0;
-      if (phi <= -2*PI)
-        DES_phi = 0;  
+      if (ph[0] >= 2*PI)
+        DEST_ph[0] = 0;
+      if (ph[0] <= -2*PI)
+        DEST_ph[0] = 0;  
 
       // THETA
-      if (c_buttons[2].pressed)
-        DES_theta -= da;
-      if (c_buttons[3].pressed) 
-        DES_theta += da;
+      if (C_BUTTONS[2].pressed)
+        DEST_ph[1] -= da;
+      if (C_BUTTONS[3].pressed) 
+        DEST_ph[1] += da;
 
-      if (theta >= 7*PI/12)
-        DES_theta = 7*PI/12;
-      if (theta <= -7*PI/12)
-        DES_theta = -7*PI/12;
+      if (ph[1] >= 7*PI/12)
+        DEST_ph[1] = 7*PI/12;
+      if (ph[1] <= -7*PI/12)
+        DEST_ph[1] = -7*PI/12;
 
       // PSI
-      if (c_buttons[4].pressed)
-        DES_psi -= da;
-      if (c_buttons[5].pressed) 
-        DES_psi += da;     
+      if (C_BUTTONS[4].pressed)
+        DEST_ph[2] -= da;
+      if (C_BUTTONS[5].pressed) 
+        DEST_ph[2] += da;     
 
-      if (psi >= 2*PI)
-        DES_psi = 0;
-      if (psi <= -2*PI)
-        DES_psi = 0;
+      if (ph[2] >= 2*PI)
+        DEST_ph[2] = 0;
+      if (ph[2] <= -2*PI)
+        DEST_ph[2] = 0;
 
       // ROLL
-      if (c_buttons[6].pressed) 
-        DES_roll += da;
-      if (c_buttons[7].pressed)
-        DES_roll -= da;
+      if (C_BUTTONS[6].pressed) 
+        DEST_ph[3] += da;
+      if (C_BUTTONS[7].pressed)
+        DEST_ph[3] -= da;
 
-      if (roll >= 2*PI)
-        DES_roll = 0;
-      if (phi <= -2*PI)
-        DES_roll = 0;  
+      if (DEST_ph[3] >= 2*PI)
+        DEST_ph[3] = 0;
+      if (DEST_ph[3] <= -2*PI)
+        DEST_ph[3] = 0;  
 
       // PITCH
-      if (c_buttons[8].pressed)
-        DES_pitch -= da;
-      if (c_buttons[9].pressed) 
-        DES_pitch += da;
+      if (C_BUTTONS[8].pressed)
+        DEST_ph[4] -= da;
+      if (C_BUTTONS[9].pressed) 
+        DEST_ph[4] += da;
 
-      if (pitch >= PI/2)
-        DES_pitch = PI/2;
-      if (pitch <= -PI/2)
-       DES_pitch = -PI/2;
+      if (ph[4] >= PI/2)
+        DEST_ph[4] = PI/2;
+      if (ph[4] <= -PI/2)
+       DEST_ph[4] = -PI/2;
 
       // YAW
-      if (c_buttons[10].pressed)
-        DES_yaw += da;
-      if (c_buttons[11].pressed) 
-        DES_yaw -= da;  
+      if (C_BUTTONS[10].pressed)
+        DEST_ph[5] += da;
+      if (C_BUTTONS[11].pressed) 
+        DEST_ph[5] -= da;  
 
-      if (yaw >= PI/6)
-        DES_yaw = PI/6;
-      if (yaw <= -PI/6)
-        DES_yaw = -PI/6;
+      if (ph[5] >= PI/6)
+        DEST_ph[5] = PI/6;
+      if (ph[5] <= -PI/6)
+        DEST_ph[5] = -PI/6;
   
-  if (c_buttons[12].pressed)
+     if (C_BUTTONS[12].pressed)
         robot.grip_size += 1;
-     if (c_buttons[13].pressed) 
+     if (C_BUTTONS[13].pressed) 
         robot.grip_size -= 1;  
 
       if (robot.grip_size >= robot.max_grip)
@@ -835,7 +920,7 @@ void move_object()
 { 
   for(int i = 0; i < num_of_things; i++)
   {
-    thing A = things[i];
+    Thing A = things[i];
     float r = sqrt(3*(A.dep/2)*(A.dep/2));
     float distance = sqrt(pow(A.pos.x-robot.effector_pos.x, 2)+pow(A.pos.y-robot.effector_pos.y, 2)+pow(A.pos.z-robot.effector_pos.z, 2));
 
@@ -855,26 +940,38 @@ void move_object()
   
 void gravity()
 {
-  float g = 0.75;
+  float g = 0.25;
  
   for(int i = 0; i < num_of_things; i++)
   {
     if(things[i].pos.y < -things[i].hei/2 && !things[i].caught)
     {   
-        things[i].vel.y += g; 
-        things[i].pos.y += things[i].vel.y;
+        things[i].vel.y += g;
     }
     else
     {
        things[i].pos.y = -things[i].hei/2;
        things[i].vel = new PVector(0,0,0);
     } 
-   
-   
   }   
   
-  
-  
-  
-  
+}
+
+void drawLab()
+{
+   // FLOOR AND DOME --------------- 
+    // roof dome
+    translate(0,150,0);
+    fill(0, 150, 255);
+    noStroke();
+    PShape dome = createShape(SPHERE, 1500);
+    //dome.disableStyle();
+    //dome.setTexture(roof);
+    shape(dome);
+    
+    pushMatrix();
+    rotateX(-PI/2);
+    fill(200, 150);
+    ellipse(0, 0, 3000, 3000);
+    popMatrix();
 }

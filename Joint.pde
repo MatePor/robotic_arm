@@ -1,9 +1,9 @@
-class joint
+class Joint
 {
   PVector pos;
   PVector orient;
 
-  joint(PVector position, PVector rotations)
+  Joint(PVector position, PVector rotations)
   {
     pos = position;
     orient = rotations;

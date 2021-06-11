@@ -1,4 +1,4 @@
-class thing
+class Thing
 {
   // position and size
  private PVector pos;
@@ -10,7 +10,7 @@ class thing
   boolean caught;
 
 
-  thing(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  Thing(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
   {
     obj = createShape(GROUP);
 
@@ -30,7 +30,7 @@ class thing
     colour = c;
   }
 
-  thing(int pwidth, int pheight, int pdepth, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  Thing(int pwidth, int pheight, int pdepth, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
   {
     obj = createShape(GROUP);
 
