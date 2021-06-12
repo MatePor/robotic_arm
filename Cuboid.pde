@@ -1,8 +1,8 @@
 class Thing
 {
   // position and size
- private PVector pos;
-  PVector orient;
+  private PVector pos;
+  private PVector orient;
   PVector vel;
   int wid, hei, dep;
   color colour;
@@ -48,6 +48,21 @@ class Thing
     obj.addChild(cuboid);
 
     colour = c;
+  }
+  
+  public void changeValues(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  {
+    pos = new PVector(px, py, pz);
+    orient = new PVector(xangle, yangle, zangle);
+    vel = new PVector(0,0,0);   
+    caught = false;   
+    dep = param;
+    wid = param;
+    hei = param;
+    colour = c;
+    cuboid = createShape(BOX, wid, hei, dep);
+    obj.removeChild(0);
+    obj.addChild(cuboid);
   }
 
   public void show()

@@ -6,28 +6,26 @@ String [] angle_names = {"ph1:", "ph2:", "ph3:", "ph4:", "ph5:", "ph6:"};
 int mode_num;
 String []mode_names = {"MANUAL_B", "INPUT_A", "INVERSE_K", "RECORDED_P", "AUTOMATIC"};
 
-ArrayList <PVector> memory_A = new ArrayList<PVector>();
-ArrayList <PVector> memory_B = new ArrayList<PVector>();
-ArrayList <Float> memory_C = new ArrayList<Float>();
-
 boolean grip_on, blocked;
 
 boolean roll_up, button_is_pressed, keyboard, automatic, continuous,
-  recording, inverse, menu_o, inst, docu, auth, mouse_follow, looking, moving, config;
+  recording, change, only_ch, inverse, menu_o, playing, mouse_follow, looking, moving, config;
 
 int num_of_things, num_of_c_buttons;
-int range;   
+int range, floor_level, dome_radius, hall_center;   
+int MemoIndex;
 
 float camX, camY, camD;
 PVector camCenter;
 PImage roof;
 
 Menu my_menu;
+Memory memory_A;
 Thing []things;
 Arm robot;
 Button []C_BUTTONS, TXT_A; 
-Button MOVE_B, MGNT_ON, MENU_B, FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT, 
-INV_KIN, RECORD, MODE_B, CH_EFF, KEY_BUT, PLAY_R, CONT_B, APPLY, CLR_M;
+Button MOVE_B, MGNT_ON, MENU_B, FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT,
+ R_MODE, RECORD_B, MODE_B, CH_EFF, KEY_BUT, PLAY_R, CONT_B, APPLY, CLR_M;
 
 void setup()
 {
@@ -41,6 +39,8 @@ void setup()
   
   // create menu object
   my_menu = new Menu();
+  memory_A = new Memory();
+  MemoIndex = 0;
   
   // --------- INITIALIZE VARIABLES -----------------
   // camera position angles and distance
@@ -84,9 +84,14 @@ void setup()
   // create an arm
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
 
-  // things (little boxes falling from the sky)
+  // environment
+  hall_center = width/2;
+  floor_level = 0;
   range = 100;
-  num_of_things = 600;
+  dome_radius = 1500;
+  
+  // things (little boxes falling from the sky)
+  num_of_things = 6;
   things = new Thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
@@ -121,20 +126,24 @@ void setup()
   //FLY = new button(240, 20, 160, 40, "FLY MODE");
   
   CONTROLS = new Button(80, 60, 160, 40, "CONTROLS");          // control panel ON/OFF
-  RECORD = new Button(240, 20, 160, 40, "RECORD");             // record START/STOP
+  RECORD_B = new Button(240, 20, 160, 40, "RECORD");             // record START/STOP
   MODE_B = new Button(240, 60, 160, 40, "MANUAL_B");           // change robot working mode
   CH_EFF = new Button(240, 100, 160, 40, "CHANGE EFFECTOR");   // self-explanatory
   KEY_BUT = new Button(240, 140, 160, 40, "KEYBOARD");         // change input between keyboard and button
   MOVE_B = new Button(240, 180, 160, 40, "MOVE");              // emable robot to move
   
-  
   MGNT_ON = new Button(80, 340, 160, 40, "MAGN -OFF"); // magnet ON/OFF
   
-  PLAY_R = new Button(80, 220, 160, 40, "PLAY_R");
-  CONT_B = new Button(125, 155, 60, 60, "cont.");
-  CLR_M = new Button(80, 340, 160, 40, "CLR DATA");
+  PLAY_R = new Button(80, 300, 160, 40, "PLAY_R");
+  CLR_M = new Button(80, 340, 160, 40, "CLR DATA"); 
+  CONT_B = new Button(80, 140, 160, 40, "CONTINUOUS-M");
+  R_MODE = new Button(80, 180, 160, 40, "CHANGE ONLY-M");
+  //GO_B = new Button(76, 150, 160, 40, "MOVE");
   
-  APPLY = new Button(80, 340, 160, 40, "APPLY");
+  // text areas
+  TXT_A = new Button[6];
+  for(int i = 0; i < 6; i++)
+    TXT_A[i] = new Button(80, 100+40*i, 160, 40, angle_names[i]);
   
   // control buttons (changing variables values)
   num_of_c_buttons = 14;
@@ -153,18 +162,18 @@ void setup()
   // control booleans
   roll_up = false;
   menu_o = true;
-  inst = false;
-  docu = false;
-  auth = false;
   keyboard = false;
   automatic = false;
   recording = false;
   inverse = false;
+  playing = false;
   mouse_follow = false;
   looking = false;
   moving = false;
   continuous = false;
   config = false;
+  change = false;
+  only_ch = false;
 }
 
 void draw()
@@ -175,7 +184,7 @@ void draw()
   anythingPressed();
   if (menu_o)
   {
-    my_menu.BACK_B.isPressed();
+    //my_menu.BACK_B.isPressed();
     my_menu.openMenu();
   }
   else
@@ -185,13 +194,12 @@ void draw()
     
     pushMatrix();
     cam();
+    
     pushMatrix();
-    // keep the same reference frame for all the 
-    //translate(-camCenter.x, -camCenter.y, - camCenter.z);
-    //translate(width/2, height/2 + 150, 0);
-
+    // keep the same reference frame for everything
+    translate(camCenter.x - hall_center, camCenter.y - floor_level, - camCenter.z);
+    
     drawLab();
-  
     animation();
     popMatrix();
     popMatrix();
@@ -295,30 +303,61 @@ void panel()
   // -------- INTERFACE -----------
   // drawing interface, buttons and messages depending on robot's mode
   
-  noFill();
-  strokeWeight(2);
-  stroke(0);
-
+  pushStyle();
+  fill(240, 180);
+  rect(80, 40, 160, 80);
+  popStyle();
+  MagnGlass(width - 50, 44, "+");
+  MagnGlass(width - 50, 133, "-");
+  ZOOM_IN.x = width - 47;
+  ZOOM_OUT.x = width - 47;
+  ZOOM_IN.show();
+  ZOOM_OUT.show();
+  MENU_B.show();
+  CONTROLS.show();
+  
   if (roll_up)
   {  
+    pushStyle();
     fill(240, 180);
     rect(80, 220, 160, 280);
     rect(240, 40, 160, 80);
+    popStyle();
     
     MODE_B.show();
-    RECORD.show();
-    CH_EFF.show();
-    if(robot.magnetic)
+    RECORD_B.show();
+    
+    pushStyle();
+    noStroke();
+    if(!recording)
+    {
+      fill(0,255,100);
+      triangle(292,27,292,13,307,20);
+    }
+    else
+    {
+      fill(255,0,0);
+      noStroke();
+      rect(300,20,16,16); 
+      fill(255);
+      textSize(30);
+      text(" recording... ", width/2, 20);
+    }
+    popStyle();
+      
+    if(mode_num < 3)
+    {  
       MGNT_ON.show();
-    
-    textSize(13);
-    fill(0);
-    
+      CH_EFF.show();
+    }
+      
     switch(mode_num)
     {
      case 0:
       for(int i = 0; i < 6; i++)
       {
+        textSize(13);
+        fill(0);
         textAlign(LEFT, CENTER);
         text(angle_names[i], 20, 100+i*40, 34, 38);
         textAlign(RIGHT, CENTER);
@@ -326,7 +365,10 @@ void panel()
       }
       
       if(!robot.magnetic)
-        text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);
+      {
+        textAlign(LEFT, CENTER);
+        text("grip size --: "+ str(robot.grip_size), 40, 340, 76, 38);;
+      }  
       
       for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
         C_BUTTONS[i].show();
@@ -339,6 +381,8 @@ void panel()
       if(!keyboard)
       {  for(int i = 0; i < 6; i++)
         {
+          textSize(13);
+          fill(0);
           textAlign(LEFT, CENTER);
           text(angle_names[i], 20, 100+i*40, 34, 38);
           textAlign(RIGHT, CENTER);
@@ -346,7 +390,10 @@ void panel()
         }
       
       if(!robot.magnetic)
-        text("grip size: "+ str(robot.grip_size), 40, 340, 76, 38);;
+      {
+        textAlign(LEFT, CENTER);
+        text("grip size --: "+ str(robot.grip_size), 40, 340, 76, 38);;
+      }
       
       for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
         C_BUTTONS[i].show();
@@ -354,9 +401,7 @@ void panel()
       else
       {
         for(int i = 0; i < 6; i++)
-            TXT_A[i].show();        
-        
-        
+            TXT_A[i].show();           
       }
       
        if(!robot.magnetic)
@@ -388,6 +433,30 @@ void panel()
        PLAY_R.show();
        CONT_B.show();
        CLR_M.show();
+       R_MODE.show();
+      if(!playing)
+     {
+       fill(0,255,100);
+       triangle(132,347,132,333,147,340);
+     }
+    else
+    {
+      fill(255,0,0);
+      noStroke();
+      rect(140,300,16,16); 
+      fill(255);
+      textSize(30);
+      text(" playing ", width/2, 20);
+    }
+       
+       fill(130);
+       if(continuous)
+          fill(0,255,0);     
+       ellipse(140, 140, 15,15);
+       
+       if(only_ch) 
+         fill(0,255,0);
+           ellipse(140, 180, 15, 15);
        break;
        
      case 4: 
@@ -398,15 +467,6 @@ void panel()
        break;
     }
   }
-
-  MagnGlass(width - 50, 44, "+");
-  MagnGlass(width - 50, 133, "-");
-  ZOOM_IN.x = width - 47;
-  ZOOM_OUT.x = width - 47;
-  ZOOM_IN.show();
-  ZOOM_OUT.show();
-  MENU_B.show();
-  CONTROLS.show();
 }
 
 void animation()
@@ -478,7 +538,7 @@ void MagnGlass(int x, int y, String sign)
   strokeWeight(7);
   line(x+15*cos(-PI/3), y+15*sin(PI/3), x+35*cos(-PI/3), y+35*sin(PI/3));
   strokeWeight(1);
-  textSize(25);
+  textSize(22);
   rectMode(CENTER);
   fill(0);
   text(sign, x, y, 30, 30);
@@ -536,7 +596,16 @@ void mouseReleased()
     menu_o = true;
   
   if(roll_up)
-  { 
+  {   
+  if (RECORD_B.pressed)
+  {
+     recording = !recording;
+     if(recording) 
+       RECORD_B.title = "STOP";
+     else 
+       RECORD_B.title = "RECORD";
+  }
+  
   if (MODE_B.pressed)
     {
       mode_num++;
@@ -544,6 +613,7 @@ void mouseReleased()
         mode_num = 0;
       MODE_B.title = mode_names[mode_num];
     }
+    
   if(mode_num == 1 && MOVE_B.pressed)
   {
       moving = !moving;
@@ -552,21 +622,12 @@ void mouseReleased()
       else
         MOVE_B.title = "MOVE";
   }
-    
+  
+  if(mode_num < 3)
+  { 
+  
   if(CH_EFF.pressed)
-    {
-      robot.magnetic = !robot.magnetic;
-    }
-    
-   if((mode_num == 1 || mode_num == 2) && KEY_BUT.pressed)
-   {
-     keyboard = !keyboard;
-     if(keyboard)
-       KEY_BUT.title = "KEYBOARD";
-     else
-       KEY_BUT.title = "BUTTONS";
-   }
-   
+    robot.magnetic = !robot.magnetic;
    if(robot.magnetic && MGNT_ON.pressed)
    {
         robot.magn_ON = !robot.magn_ON;
@@ -583,6 +644,41 @@ void mouseReleased()
          
          MGNT_ON.pressed = false;
    }   
+      
+  }
+    
+   if((mode_num == 1 || mode_num == 2) && KEY_BUT.pressed)
+   {
+     keyboard = !keyboard;
+     if(keyboard)
+       KEY_BUT.title = "KEYBOARD";
+     else
+       KEY_BUT.title = "BUTTONS";
+   }
+  
+   if(mode_num == 3)
+   {
+     if(CLR_M.pressed)
+       memory_A.clearAll();
+     
+     if(CONT_B.pressed)
+       continuous = !continuous;
+     
+     if(R_MODE.pressed)
+       only_ch = !only_ch;
+       
+     if(PLAY_R.pressed)
+     {
+       playing = !playing;
+       
+       if(playing)
+         PLAY_R.title = "STOP_R";
+       else
+         PLAY_R.title = "PLAY_R";    
+     }
+   }
+   
+   
    
   }
   
@@ -599,20 +695,24 @@ void mouseReleased()
     }
   
     if (my_menu.INSTRUCTIONS.pressed)
-      inst = true;
+      my_menu.inst = true;
   
     if (my_menu.DOCUMENTATION.pressed)
-      docu = true;
+      my_menu.docu = true;
   
     if (my_menu.AUTHOR.pressed)
-      auth = true;
+      my_menu.auth = true;
   
     if (my_menu.BACK_B.pressed)
     {
-      inst = false;
-      auth = false;
-      docu = false;
+      my_menu.inst = false;
+      my_menu.auth = false;
+      my_menu.docu = false;
     }
+    
+    if(my_menu.RESET_B.pressed)
+       resetAll(); 
+   
   }
 }
 
@@ -621,12 +721,22 @@ void anythingPressed()
   // check whether any acitve button is pressed right now
   button_is_pressed = false;
   ArrayList <Boolean> presses = new ArrayList<Boolean>();
-
+  boolean C_prsd = false;
   for (int i = 0; i < num_of_c_buttons; i++)
   {
     C_BUTTONS[i].isPressed();
     presses.add(C_BUTTONS[i].pressed);
+    
+    
+    if(C_BUTTONS[i].pressed)
+      C_prsd = true;  
   }
+  
+  if(C_prsd)
+    change = true;
+  else 
+    change = false;
+
 
   ZOOM_IN.isPressed();
   presses.add(ZOOM_IN.pressed);
@@ -636,6 +746,8 @@ void anythingPressed()
   presses.add(MENU_B.pressed);
   CONTROLS.isPressed();
   presses.add(CONTROLS.pressed);
+  RECORD_B.isPressed();
+  presses.add(RECORD_B.pressed);
   MOVE_B.isPressed();
   presses.add(MOVE_B.pressed);
   MODE_B.isPressed();
@@ -649,6 +761,8 @@ void anythingPressed()
     presses.add(CONT_B.pressed);
     CLR_M.isPressed();
     presses.add(CLR_M.pressed);
+    R_MODE.isPressed();
+    presses.add(R_MODE.pressed);
   }
   
   if(robot.magnetic)
@@ -713,9 +827,8 @@ void controls()
      break;
     case 1:
     if(moving)
-      move_angles();
-      
-    euler_angles();    
+      move_angles();     
+      input_angles();    
       break;
      case 2:
       inverse_kinematics();
@@ -812,7 +925,7 @@ void manual_control()
         robot.grip_size = 0;
 }
 
-void euler_angles()
+void input_angles()
 {
    
      // PHI
@@ -821,9 +934,9 @@ void euler_angles()
       if (C_BUTTONS[1].pressed)
         DEST_ph[0] -= da;
 
-      if (ph[0] >= 2*PI)
+      if (DEST_ph[0] >= 2*PI)
         DEST_ph[0] = 0;
-      if (ph[0] <= -2*PI)
+      if (DEST_ph[0] <= -2*PI)
         DEST_ph[0] = 0;  
 
       // THETA
@@ -832,9 +945,9 @@ void euler_angles()
       if (C_BUTTONS[3].pressed) 
         DEST_ph[1] += da;
 
-      if (ph[1] >= 7*PI/12)
+      if (DEST_ph[1] >= 7*PI/12)
         DEST_ph[1] = 7*PI/12;
-      if (ph[1] <= -7*PI/12)
+      if (DEST_ph[1] <= -7*PI/12)
         DEST_ph[1] = -7*PI/12;
 
       // PSI
@@ -843,9 +956,9 @@ void euler_angles()
       if (C_BUTTONS[5].pressed) 
         DEST_ph[2] += da;     
 
-      if (ph[2] >= 2*PI)
+      if (DEST_ph[2] >= 2*PI)
         DEST_ph[2] = 0;
-      if (ph[2] <= -2*PI)
+      if (DEST_ph[2] <= -2*PI)
         DEST_ph[2] = 0;
 
       // ROLL
@@ -865,9 +978,9 @@ void euler_angles()
       if (C_BUTTONS[9].pressed) 
         DEST_ph[4] += da;
 
-      if (ph[4] >= PI/2)
+      if (DEST_ph[4] >= PI/2)
         DEST_ph[4] = PI/2;
-      if (ph[4] <= -PI/2)
+      if (DEST_ph[4] <= -PI/2)
        DEST_ph[4] = -PI/2;
 
       // YAW
@@ -876,9 +989,9 @@ void euler_angles()
       if (C_BUTTONS[11].pressed) 
         DEST_ph[5] -= da;  
 
-      if (ph[5] >= PI/6)
+      if (DEST_ph[5] >= PI/6)
         DEST_ph[5] = PI/6;
-      if (ph[5] <= -PI/6)
+      if (DEST_ph[5] <= -PI/6)
         DEST_ph[5] = -PI/6;
   
      if (C_BUTTONS[12].pressed)
@@ -902,10 +1015,13 @@ void inverse_kinematics()
 }
 
 void recorded_play()
-{
-  
-  
-  
+{  
+  // read the memory and act appropriately 
+  if(playing) 
+      translateMemory();   
+    
+   if(!memory_A.checkSize(MemoIndex) && continuous)
+       MemoIndex = 0;
 }
 
 void automatic_mode()
@@ -946,6 +1062,10 @@ void gravity()
   {
     if(things[i].pos.y < -things[i].hei/2 && !things[i].caught)
     {   
+        //check for collisions
+        // for(int j = 0; j < num_of_things; j++)
+        //
+        
         things[i].vel.y += g;
     }
     else
@@ -960,18 +1080,123 @@ void gravity()
 void drawLab()
 {
    // FLOOR AND DOME --------------- 
-    // roof dome
-    translate(0,150,0);
-    fill(0, 150, 255);
-    noStroke();
-    PShape dome = createShape(SPHERE, 1500);
-    //dome.disableStyle();
-    //dome.setTexture(roof);
-    shape(dome);
+   // roof dome
+   pushMatrix();
+   translate(0, camCenter.y - floor_level,0);
     
-    pushMatrix();
-    rotateX(-PI/2);
-    fill(200, 150);
-    ellipse(0, 0, 3000, 3000);
-    popMatrix();
+   noStroke();
+   fill(25);
+   PShape dome = createShape(SPHERE, dome_radius);
+   dome.disableStyle();
+   //dome.setTexture(roof);
+   shape(dome);
+    
+   pushMatrix();
+   rotateX(-PI/2);
+   fill(200, 150);
+   ellipse(0, 0, 2*dome_radius, 2*dome_radius);
+   popMatrix();
+   popMatrix();
+}
+
+void resetAll()
+{
+  ph[0] = 0;
+  ph[1] = PI/4;
+  ph[2] = -5*PI/4;
+  ph[3] = 0;
+  ph[4] = 0;
+  ph[5] = 0;
+ 
+  DEST_ph[0] = 0;
+  DEST_ph[1] = PI/4;
+  DEST_ph[2] = -5*PI/4;
+  DEST_ph[3] = 0;
+  DEST_ph[4] = 0;
+  DEST_ph[5] = 0;
+  
+  camX = 0;
+  camY = 0;
+  camD = 1.5;
+  camCenter = new PVector(width/2, height/2 - 100, 0);
+  
+  mode_num = 0;
+  memory_A.clearAll();
+  
+  for (int i = 0; i < 6; i++)
+    angles[i] = new PVector(0, 0, 0);
+  
+  for (int i = 0; i < num_of_things; i++)
+  {
+    int ran = int(random(10, 24));
+    boolean ok;
+
+    do
+    {
+      ok = true;  
+      color rand_color = color(random(255), random(255), random(255));
+      
+      things[i].changeValues(ran, int(random(-range,range)), int(random(-10000,-100)), int(random(-range, range)),
+      0, random(PI), 0, rand_color);
+      
+      for (int j = 0; j < i; j++)
+        if (isColliding(things[i], things[j]))
+          ok = false;
+          
+        if(isColliding(things[i], robot.base))
+          ok = false;
+    }
+    while (!ok);
+  }
+}
+
+void translateMemory()
+{
+  int action_reader = 0;
+  
+  memory_A.readMemo(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z, 
+  ph[0],ph[1],ph[2],ph[3],ph[4],ph[5],action_reader,MemoIndex);
+  
+  MemoIndex++;
+  
+  if(action_reader < 3)
+    robot.magnetic = true;
+  else 
+    robot.magnetic = false;
+    
+  if(action_reader == 2)
+    robot.magn_ON = true;
+  else
+    robot.magn_ON = false;
+   
+  if(action_reader == 4)
+    robot.grip_size += 1;
+  if(action_reader == 5)
+    robot.grip_size -= 1;
+}
+
+
+void writeRecord()
+{
+  PVector ar_ang = new PVector(ph[0], ph[1], ph[2]);
+  PVector or_ang = new PVector(ph[3], ph[4], ph[5]);
+      
+  int action_num = 0;
+  if(robot.magnetic)
+  {
+    action_num = 1;
+    if(robot.magn_ON)
+      action_num = 2; 
+  }
+  else 
+  {
+    action_num = 3;
+    if(C_BUTTONS[12].pressed)
+      action_num = 4;
+    if(C_BUTTONS[13].pressed)
+      action_num = 5;  
+  }
+   
+  memory_A.writeMemo(robot.effector_pos, ar_ang, or_ang, action_num);  
+      
 }
