@@ -1,6 +1,6 @@
 class Button
 {
-  private int x, y, w, h;
+  int x, y, w, h;
   
   public String title;  
   public boolean pressed; 

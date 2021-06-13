@@ -1,10 +1,11 @@
-/*class Button extends TextArea 
+class TextArea extends Button
 {
-  String angle;
+  String txt2;
   
-  TextArea(int px, int py, int pw, int ph, String txt, String txt2) {
-    super(px, py, pw, ph, txt); 
-    angle = txt2;
+  TextArea(int x, int y, int w, int h, String title, String txt) 
+  {
+    super(x, y, w, h, title); 
+    txt2 = txt;
   }
 
  public void isPressed()
@@ -34,7 +35,8 @@
       fill(0, 150);
       textSize(0.4*h);
       textAlign(CENTER, CENTER);
-      text(title, x, y, w, h);
+      text(title, x-w/4, y, w/2, h/2);
+      text(txt2, x+w/4,y, w/2, h/2);
     }
   }
-} */
+} 

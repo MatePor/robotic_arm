@@ -112,18 +112,18 @@ class Arm
     //angles[5].x
     
     effector_pos.x = +80*sin(angles[1].z)*cos(angles[0].y)
-    +75*sin(angles[1].z + angles[2].z)*cos(angles[0].y);
-    //-80*cos(angles[2].z - angles[1].z)*cos(angles[0].y);
+    +75*sin(angles[1].z + angles[2].z)*cos(angles[0].y)
+    +20*sin(angles[1].z + angles[2].z + angles[4].z)*cos(angles[0].y+angles[3].y)
+    +20*sin(angles[1].z + angles[2].z + angles[4].z)*cos(angles[0].y+angles[3].y)*sin(angles[5].x);
     
-    effector_pos.y = -80-80*cos(angles[1].z) - 75*cos(angles[1].z + angles[2].z)
-     - 20*cos(angles[3].y)*cos(angles[1].z + angles[2].z + angles[4].z)+
-     20*sin(angles[3].y)*cos(angles[1].z + angles[2].z + angles[5].x);
+    effector_pos.y = -80-80*cos(angles[1].z)-75*cos(angles[1].z + angles[2].z)
+     - 20*cos(angles[3].y)*sin(angles[1].z + angles[2].z + angles[4].z)
+     - 20*sin(angles[3].y)*sin(angles[4].z)*sin(angles[5].x);
     
     effector_pos.z = -80*sin(angles[1].z)*sin(angles[0].y)
-    -75*sin(angles[1].z + angles[2].z)*sin(angles[0].y);
-    //-80*cos(angles[2].z - angles[1].z)*sin(-angles[0].y);
-
-    // effector_pos.add(new PVector(0, -12, 0));
+    -75*sin(angles[1].z + angles[2].z)*sin(angles[0].y)
+    -20*sin(angles[1].z + angles[2].z + angles[4].z)*sin(angles[0].y+angles[3].y)
+    -20*sin(angles[1].z + angles[2].z + angles[4].z)*sin(angles[0].y+angles[3].y)*sin(angles[5].x);
   }
 
   public void showArm()

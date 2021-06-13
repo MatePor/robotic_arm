@@ -13,10 +13,10 @@ boolean roll_up, button_is_pressed, keyboard, automatic, continuous,
 
 int num_of_things, num_of_c_buttons;
 int range, floor_level, dome_radius, hall_center;   
-int MemoIndex;
+int MemoIndex, InputIndex;
 
 float camX, camY, camD;
-PVector camCenter;
+PVector camCenter, grab_coord, put_coord, tower_coord;
 PImage roof;
 
 Menu my_menu;
@@ -54,7 +54,12 @@ void setup()
   //max_grip = 24;
   //grip_on = true;
   blocked = false;
-
+  
+  // inverse kinematics coordinates
+  grab_coord = new PVector(0,0,0);
+  put_coord = new PVector(0,0,0);
+  tower_coord = new PVector(0,0,0);
+  
   // angles(position)
   ph = new float[6];
   DEST_ph = new float[6];
@@ -79,7 +84,7 @@ void setup()
     angles[i] = new PVector(0, 0, 0);
 
   // angle step
-  da = PI/128; 
+  da = PI/180; 
 
   // create an arm
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
@@ -117,7 +122,8 @@ void setup()
 
     things[i] = test_thing;
   }
-
+  
+  InputIndex = 0;
   // -------------------- BUTTONS ------------------
   MENU_B = new Button(80, 20, 160, 40, "MENU");               // back to menu
   ZOOM_IN = new Button(width - 47, 54, 56, 70, ""); 
@@ -141,9 +147,9 @@ void setup()
   //GO_B = new Button(76, 150, 160, 40, "MOVE");
   
   // text areas
-  TXT_A = new Button[6];
+  TXT_A = new TextArea[6];
   for(int i = 0; i < 6; i++)
-    TXT_A[i] = new Button(80, 100+40*i, 160, 40, angle_names[i]);
+    TXT_A[i] = new TextArea(80, 100+40*i, 160, 40, angle_names[i], "");
   
   // control buttons (changing variables values)
   num_of_c_buttons = 14;
@@ -158,6 +164,7 @@ void setup()
     if (i%2 == 1)
       k++;
   }
+  InputIndex = 0;
 
   // control booleans
   roll_up = false;
@@ -205,12 +212,12 @@ void draw()
     popMatrix();
  
     // debugging
-    /*
+    
     textSize(30);
-    text(str(things[0].pos.y), 400, 50);
-    text(str(things[0].vel.y), 400, 100); 
+    text(str(ph[0]), 400, 50);
+    text(str(DEST_ph[0]), 400, 100); 
     text(str(robot.magn_ON), 400, 150);
-    */
+   
     //interface
     panel();
   }
@@ -307,6 +314,7 @@ void panel()
   fill(240, 180);
   rect(80, 40, 160, 80);
   popStyle();
+  
   MagnGlass(width - 50, 44, "+");
   MagnGlass(width - 50, 133, "-");
   ZOOM_IN.x = width - 47;
@@ -328,7 +336,6 @@ void panel()
     RECORD_B.show();
     
     pushStyle();
-    noStroke();
     if(!recording)
     {
       fill(0,255,100);
@@ -337,7 +344,6 @@ void panel()
     else
     {
       fill(255,0,0);
-      noStroke();
       rect(300,20,16,16); 
       fill(255);
       textSize(30);
@@ -346,8 +352,9 @@ void panel()
     popStyle();
       
     if(mode_num < 3)
-    {  
-      MGNT_ON.show();
+    { 
+      if(robot.magnetic) 
+        MGNT_ON.show();
       CH_EFF.show();
     }
       
@@ -367,7 +374,7 @@ void panel()
       if(!robot.magnetic)
       {
         textAlign(LEFT, CENTER);
-        text("grip size --: "+ str(robot.grip_size), 40, 340, 76, 38);;
+        text("grip size-: "+ str(robot.grip_size), 40, 340, 76, 38);;
       }  
       
       for (int i = 0; i < (num_of_c_buttons - int(robot.magnetic)*2); i++)
@@ -437,7 +444,7 @@ void panel()
       if(!playing)
      {
        fill(0,255,100);
-       triangle(132,347,132,333,147,340);
+       triangle(132,307,132,293,147,300);
      }
     else
     {
@@ -538,10 +545,9 @@ void MagnGlass(int x, int y, String sign)
   strokeWeight(7);
   line(x+15*cos(-PI/3), y+15*sin(PI/3), x+35*cos(-PI/3), y+35*sin(PI/3));
   strokeWeight(1);
-  textSize(22);
-  rectMode(CENTER);
-  fill(0);
-  text(sign, x, y, 30, 30);
+  textSize(30);
+  fill(255);
+  text(sign, x, y, 40, 40);
 }
 
 /*
@@ -582,9 +588,9 @@ void move_angles()
 
 int signum(float x)
 {
-  if(x > 0)
+  if(x > da/4)
     return 1;
-  if(x < 0)
+  if(x < -da/4)
     return -1;
  
   return 0; 
@@ -606,7 +612,7 @@ void mouseReleased()
        RECORD_B.title = "RECORD";
   }
   
-  if (MODE_B.pressed)
+  if (MODE_B.pressed && !playing)
     {
       mode_num++;
       if(mode_num > 4)
@@ -677,9 +683,6 @@ void mouseReleased()
          PLAY_R.title = "PLAY_R";    
      }
    }
-   
-   
-   
   }
   
   
@@ -697,9 +700,6 @@ void mouseReleased()
     if (my_menu.INSTRUCTIONS.pressed)
       my_menu.inst = true;
   
-    if (my_menu.DOCUMENTATION.pressed)
-      my_menu.docu = true;
-  
     if (my_menu.AUTHOR.pressed)
       my_menu.auth = true;
   
@@ -707,7 +707,6 @@ void mouseReleased()
     {
       my_menu.inst = false;
       my_menu.auth = false;
-      my_menu.docu = false;
     }
     
     if(my_menu.RESET_B.pressed)
@@ -737,7 +736,6 @@ void anythingPressed()
   else 
     change = false;
 
-
   ZOOM_IN.isPressed();
   presses.add(ZOOM_IN.pressed);
   ZOOM_OUT.isPressed();
@@ -752,6 +750,15 @@ void anythingPressed()
   presses.add(MOVE_B.pressed);
   MODE_B.isPressed();
   presses.add(MODE_B.pressed);
+  
+  if(keyboard && mode_num != 1 && mode_num != 5)
+    for(int i = 0; i < 6; i++)
+      {
+        TXT_A[i].isPressed();
+        
+        if(TXT_A[i].pressed)
+          InputIndex = i;
+      }
   
   if(mode_num == 3)
   {
@@ -815,9 +822,13 @@ void controls()
   if (camD > 4.1 )
     camD = 4.1;
   
+  if(recording)
+      writeRecord();
+      
   // menu/instructions
   if (roll_up)
-  {
+  { 
+       
     switch(mode_num)
     {
     
@@ -1010,8 +1021,44 @@ void inverse_kinematics()
 {
   // mouse mode (w/d)
   // x,y,z
-  // 
-  //
+  if(!keyboard)
+  {
+      if (C_BUTTONS[0].pressed) 
+        grab_coord.x ++;
+      if (C_BUTTONS[1].pressed)
+        grab_coord.x --; 
+
+      if (C_BUTTONS[2].pressed)
+        grab_coord.y ++;
+      if (C_BUTTONS[3].pressed) 
+        grab_coord.y --;
+
+      if (C_BUTTONS[4].pressed)
+        grab_coord.z ++;
+      if (C_BUTTONS[5].pressed) 
+        grab_coord.z --;
+
+      if (C_BUTTONS[6].pressed) 
+        put_coord.x ++;
+      if (C_BUTTONS[7].pressed)
+        put_coord.x --;
+
+      if (C_BUTTONS[8].pressed)
+        put_coord.y ++;
+      if (C_BUTTONS[9].pressed) 
+        put_coord.y --;
+
+      if (C_BUTTONS[10].pressed)
+        put_coord.z ++;
+      if (C_BUTTONS[11].pressed) 
+        put_coord.z --;
+    }
+    else
+    {
+      text("",1,1);
+      
+    }    
+     
 }
 
 void recorded_play()
@@ -1020,16 +1067,40 @@ void recorded_play()
   if(playing) 
       translateMemory();   
     
-   if(!memory_A.checkSize(MemoIndex) && continuous)
+   if(!memory_A.checkSize(MemoIndex))
+   {
+     if(continuous)
        MemoIndex = 0;
+     else 
+       playing = false;
+   }
 }
 
 void automatic_mode()
 {
+  if(!keyboard)
+  {
+     // check whether the point is within arm's range
+    boolean inRange = checkRange(tower_coord);
+    
+    if(C_BUTTONS[0].pressed)    
+      tower_coord.x ++;
+    if(C_BUTTONS[1].pressed)
+      tower_coord.x --; 
+
+    if(C_BUTTONS[2].pressed)
+      tower_coord.y ++;
+    if(C_BUTTONS[3].pressed) 
+      tower_coord.y --;
+   }
+}
+   
+boolean checkRange(PVector coords)
+{
+  if(coords.dist(robot.joints[1].pos) < 120) 
+    return true;
   
-  
-  
-  
+  return false;
 }
 
 void move_object()
@@ -1115,6 +1186,9 @@ void resetAll()
   DEST_ph[4] = 0;
   DEST_ph[5] = 0;
   
+  grab_coord = new PVector(0,0,0);
+  put_coord = new PVector(0,0,0);
+ 
   camX = 0;
   camY = 0;
   camD = 1.5;
@@ -1152,10 +1226,19 @@ void resetAll()
 
 void translateMemory()
 {
-  int action_reader = 0;
+  float []readData = memory_A.readMemo(MemoIndex);
+  int action_reader = -1;
   
-  memory_A.readMemo(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z, 
-  ph[0],ph[1],ph[2],ph[3],ph[4],ph[5],action_reader,MemoIndex);
+  robot.effector_pos.x = readData[0];
+  robot.effector_pos.y = readData[1];
+  robot.effector_pos.z = readData[2];
+  ph[0] = readData[3];
+  ph[1] = readData[4];
+  ph[2] = readData[5];
+  ph[3] = readData[6];
+  ph[4] = readData[7];
+  ph[5] = readData[8];
+  action_reader = int(readData[9]);
   
   MemoIndex++;
   
@@ -1174,7 +1257,6 @@ void translateMemory()
   if(action_reader == 5)
     robot.grip_size -= 1;
 }
-
 
 void writeRecord()
 {
@@ -1199,4 +1281,4 @@ void writeRecord()
    
   memory_A.writeMemo(robot.effector_pos, ar_ang, or_ang, action_num);  
       
-}
+} 

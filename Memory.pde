@@ -5,6 +5,7 @@ class Memory
   private ArrayList <PVector> ori; 
   private IntList action; 
   private int MemoSize;
+  float []dataArray;
   
   Memory()
   {
@@ -13,6 +14,9 @@ class Memory
     ori = new ArrayList<PVector>();
     action = new IntList();
     MemoSize = 0;
+    dataArray = new float[10];
+    for(int i = 0; i < 10; i++)
+       dataArray[i] = 0;
   }
   
   public void clearAll()
@@ -30,23 +34,22 @@ class Memory
      MemoSize = 0;  
   }
   
-  public void readMemo(float posX, float posY, float posZ, 
-  float ang1, float ang2, float ang3, float ang4, float ang5, float ang6,
-   int action_reader, int index)
-  {
+  public float[] readMemo(int index)
+  {   
     if(index < MemoSize)
-    {
-      posX = pos.get(index).x; 
-      posY = pos.get(index).y; 
-      posZ = pos.get(index).z; 
-      ang1 = ang.get(index).x;
-      ang2 = ang.get(index).y;
-      ang3 = ang.get(index).z;
-      ang4 = ori.get(index).x;
-      ang5 = ori.get(index).y;
-      ang6 = ori.get(index).z;
-      action_reader = action.get(index); 
-    } 
+    {    
+      dataArray[0] = pos.get(index).x; 
+      dataArray[1] = pos.get(index).y; 
+      dataArray[2] = pos.get(index).z; 
+      dataArray[3] = ang.get(index).x;
+      dataArray[4] = ang.get(index).y;
+      dataArray[5] = ang.get(index).z;
+      dataArray[6] = ori.get(index).x;
+      dataArray[7] = ori.get(index).y;
+      dataArray[8] = ori.get(index).z;
+      dataArray[9] = float(action.get(index)); 
+    }  
+      return dataArray; 
   }
 
   public void writeMemo(PVector position, PVector angle, PVector orient,int c)
@@ -73,4 +76,4 @@ class Memory
   
   }
   
-}
+} 
