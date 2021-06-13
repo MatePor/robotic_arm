@@ -69,6 +69,11 @@ class Memory
     return false;
   }
   
+  public int memoSize()
+  {
+    return MemoSize;
+  }
+  
   public void saveToFile()
   {
     //create and write to file
