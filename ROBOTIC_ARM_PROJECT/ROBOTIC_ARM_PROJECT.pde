@@ -9,11 +9,11 @@ String []mode_names = {"MANUAL_B", "INPUT_A", "INVERSE_K", "RECORDED_P", "AUTOMA
 boolean grip_on, blocked;
 
 boolean roll_up, button_is_pressed, keyboard, automatic, continuous, flying,
-  recording, change, only_ch, init_play, menu_o, playing, mouse_follow, full_memo, moving, config;
+  recording, change, only_ch, init_play, putting, grabbing, menu_o, playing, mouse_follow, full_memo, moving, config;
 
 int num_of_things, num_of_c_buttons;
 int range, floor_level, dome_radius, hall_center;   
-int MemoIndex, InputIndex;
+int MemoIndex, InputIndex, auto_index, tower_size;
 
 float camX, camY, camD;
 PVector camCenter, grab_coord, put_coord, tower_coord;
@@ -32,10 +32,10 @@ Button MOVE_B, MGNT_ON, MENU_B, FLY, CONTROLS, ZOOM_IN, ZOOM_OUT, MAN_AUT,
 void setup()
 {
   size(800, 600, P3D);
-  //surface.setTitle("Robotic Arm 2021");
-  //surface.setLocation(30, 30);
+  surface.setTitle("Robotic Arm 2021");
+  surface.setLocation(30, 30);
   rectMode(CENTER);
-  roof = loadImage("images/13.jpg");
+  //roof = loadImage("images/wall.jpg");
   //textureWrap(REPEAT);
   
   textFont(createFont("Arial", 100));
@@ -44,6 +44,8 @@ void setup()
   my_menu = new Menu();
   memory_A = new Memory();
   MemoIndex = 0;
+  auto_index = 0;
+  tower_size = 0;
   
   // --------- INITIALIZE VARIABLES -------------------
   // camera position angles and distance
@@ -57,7 +59,7 @@ void setup()
   // inverse kinematics coordinates
   grab_coord = new PVector(0,0,0);
   put_coord = new PVector(0,0,0);
-  tower_coord = new PVector(0,0); // radius and angle
+  tower_coord = new PVector(0,0,0); // radius and angle
   
   // angles(position)
   ph = new float[6];
@@ -104,7 +106,7 @@ void setup()
   dome_radius = 1500;
   
   // things (little boxes falling from the sky)
-  num_of_things = 1;
+  num_of_things = 3;
   things = new Thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
@@ -138,6 +140,7 @@ void setup()
 
     things[i] = test_thing;
   }
+  sortThings();
   
   // -------------------- BUTTONS ----------------------------
   MENU_B = new Button(80, 20, 160, 40, "MENU");               // back to menu
@@ -194,6 +197,8 @@ void setup()
   flying = false;
   moving = false;
   continuous = false;
+  putting = false;
+  grabbing = true;
   config = false;
   change = false;
   only_ch = false;
@@ -254,6 +259,7 @@ void resetAll()
     }
     while (!ok);
   }
+   sortThings();
 }
 
 // ---------------------------------- CAMERA FUNCTION ----------------------------------------------
@@ -317,15 +323,19 @@ void draw()
     popMatrix();
  
     // debugging
-    
+    /*
     textSize(30);
-    text(str(things[0].pos.x), 400, 50);
-    text(str(things[0].pos.y), 500, 50);
-    text(str(things[0].pos.z), 600, 50);
-    text(str(robot.effector_pos.x), 400, 100); 
-    text(str(robot.effector_pos.y), 500, 100);
-    text(str(robot.effector_pos.z), 600, 100);
-   
+    text(str(grabbing), 600, 150);
+    text(str(putting), 600, 200);
+    
+    text(str(int(things[0].pos.x)), 400, 50);
+    text(str(int(things[0].pos.y)), 500, 50);
+    text(str(int(things[0].pos.z)), 600, 50);
+    text(str(int(robot.effector_pos.x)), 400, 100); 
+    text(str(int(robot.effector_pos.y)), 500, 100);
+    text(str(int(robot.effector_pos.z)), 600, 100);
+     */
+     
     //interface
     panel();
   }
@@ -389,7 +399,6 @@ void keyReleased()
             ph[InputIndex] = float(new_str);
         default: break;
       }
-    
   }
   
 }
@@ -410,7 +419,7 @@ void mouseReleased()
        RECORD_B.title = "RECORD";
   }
   
-  if (MODE_B.pressed && !playing)
+  if (MODE_B.pressed && !playing && !moving)
     {
       mode_num++;
       if(mode_num > 4)
@@ -418,7 +427,7 @@ void mouseReleased()
       MODE_B.title = mode_names[mode_num];
     }
     
-  if(mode_num == 1 && MOVE_B.pressed)
+  if((mode_num == 1 || mode_num == 2)&& MOVE_B.pressed)
   {
       moving = !moving;
       if(moving)
@@ -441,6 +450,8 @@ void mouseReleased()
           for(int i = 0; i < num_of_things; i++)
               things[i].caught = false;
               
+         blocked = false;
+              
           MGNT_ON.title = "MGN -ON";
          }
          else 
@@ -457,6 +468,16 @@ void mouseReleased()
      else
        KEY_BUT.title = "KEYBOARD";
    }
+   
+   if(mode_num == 4 && GO_B.pressed)
+    {
+      moving = !moving;
+        
+      if(moving) 
+        GO_B.title = "STOP";
+      else
+        GO_B.title = "BUILD";
+    }
   
    if(mode_num == 3)
    {
@@ -528,7 +549,6 @@ void mouseReleased()
 }
 
 
-/*
 void mouseWheel(MouseEvent event)
  {
  float sens = 0.1;
@@ -540,7 +560,7 @@ void mouseWheel(MouseEvent event)
  if(camD > 4.1 )
  camD = 4.1;
  }
- */
+
  
 /*
 void check_cursor()
@@ -722,11 +742,24 @@ void panel()
       
        textSize(15);
        text("RECORDING MODE", 80, 100, 160, 40);
-       
-       textSize(8);
-       text("change only-m - records only angle changes", 80, 220, 160, 80);
-       text("continuous -m - repeats recorded moves after finishing", 80, 260, 160, 40);
+     
+       if(memory_A.getSize() != 0)
+       {
+         fill(0,255,0);
+         textSize(15);
+         text("RECORDED", 70, 240, 160, 40);
          
+       }
+       else
+       {
+         fill(130);
+         textSize(15);
+         text("NO RECORDS", 70, 240, 160, 40);
+       }
+       
+       ellipse(140, 240, 15,15);
+       
+      
       pushStyle();
       if(!playing)
        {
@@ -757,6 +790,7 @@ void panel()
        
      case 4: 
       GO_B.show();
+      
       for(int i = 0; i < 4; i++)
         C_BUTTONS[i].show();
         
@@ -765,13 +799,13 @@ void panel()
         textSize(11);
         fill(0);
         textAlign(LEFT, CENTER);
-        text("radius:", 20, 100, 50, 38);
+        text("towerX:", 30, 100, 52, 38);
         textAlign(RIGHT, CENTER);
-        text(str(tower_coord.x), 52, 100, 50, 38);
+        text(str(tower_coord.x), 50, 100, 58, 38);
         textAlign(LEFT, CENTER);
-        text("angle:", 20, 140, 50, 50);
+        text("towerZ:", 30, 140, 52, 38);
         textAlign(RIGHT, CENTER);
-        text(toDegr(tower_coord.y), 52, 140, 50, 38);
+        text(str(tower_coord.z), 50, 140, 58, 38);
         
        popStyle();
        
@@ -820,15 +854,17 @@ void drawLab()
 {
    // FLOOR AND DOME --------------- 
    // roof dome
-   noStroke();
+   stroke(0);
+   strokeWeight(0.5);
+   fill(0,140,255);
    PShape dome = createShape(SPHERE, dome_radius);
-   dome.enableStyle();
-   dome.setTexture(roof);
+   dome.disableStyle();
+   //dome.setTexture(roof);
    shape(dome);
     
    pushMatrix();
    rotateX(-PI/2);
-   fill(200, 150);
+   fill(150);
    ellipse(0, 0, 2*dome_radius, 2*dome_radius);
    popMatrix();
 }
@@ -859,34 +895,47 @@ void animation()
     
   if(robot.magnetic && robot.magn_ON)
     move_object();
-   
-  
+       
   for (int i = 0; i < num_of_things; i++)
   { 
-    if(things[i].caught)
+    if(things[i].caught && blocked)
     {
-      things[i].pos = robot.effector_pos;
+      things[i].pos.x = robot.effector_pos.x;
+      things[i].pos.y = robot.effector_pos.y;
+      things[i].pos.z = robot.effector_pos.z;
       things[i].orient = robot.effector_orient;
     }
-      things[i].pos.add(things[i].vel);
-      things[i].show();
+   else
+   {
+     if(!isCollidingCartesian(things[i], robot.base) || things[i].pos.y < -80-things[i].hei/2)
+       {
+         things[i].vel.x = 0;
+         things[i].vel.z = 0;
+         things[i].pos.add(things[i].vel);   
+       }
+      else if(things[i].pos.y >= -80-3*things[i].hei/4)
+       {
+         things[i].vel.y = 0;
+         if(robot.base.pos.x - things[i].pos.x < robot.base.pos.z - things[i].pos.z)
+           things[i].vel.x = 4;
+         else 
+           things[i].vel.z = 4;
+       }
+       
+       things[i].pos.add(things[i].vel);   
+   }
+     
+    things[i].show();
   }
 
-  pushMatrix();
-  translate(robot.position.x, robot.position.y, robot.position.z);
-  //pointingSphere(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z, color(255,0,0));
-  translate(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z);
-  rotateX(robot.effector_orient.x);
-  rotateY(robot.effector_orient.y);
-  rotateZ(robot.effector_orient.z);
-  pushStyle();
-  noFill();
-  strokeWeight(0.1);
-  stroke(255,255,0);
-  sphere(10);
-  popStyle();
-  popMatrix();
-
+  //indSphere(robot.effector_pos, color(255,255,0));
+  
+  if(mode_num == 4)
+  {   
+    tower_coord.y = 0;
+    indSphere(tower_coord, color(0,0,255));
+    tower_coord.y = tower_size - 30;
+  }
 } 
 
 // ----------------------------------- CHECKING FOR PRESSED BUTTONS ------------------------------
@@ -961,13 +1010,16 @@ void anythingPressed()
   }
   */
   
-  if(mode_num == 5)
+  if(mode_num == 4)
   {
     for(int i = 0; i < 4; i++)
     {
        C_BUTTONS[i].isPressed();
       presses.add(C_BUTTONS[i].pressed); 
     }
+    
+     GO_B.isPressed();
+     presses.add(GO_B.pressed);
   }
   
   
@@ -999,19 +1051,48 @@ void move_angles()
   ph[4] += signum(DEST_ph[4]-ph[4])*da/2;
   ph[5] += signum(DEST_ph[5]-ph[5])*da/2;
   
-  if(playing && init_play)
+  boolean finished_init = true;
+    
+  for(int i = 0; i < 6; i++)
   {
-    boolean finished_init = true;
-    
-    for(int i = 0; i < 6; i++)
-    {
-      if(signum(DEST_ph[i]-ph[i]) != 0)
-        finished_init = false;
-    }
-    
-    if(finished_init)
-      init_play = false;
+    if(signum(DEST_ph[i]-ph[i]) != 0)
+      finished_init = false;
   }
+    
+  if(playing && init_play)
+    if(finished_init)
+        init_play = false;
+      
+  if(mode_num == 2 || mode_num == 4)
+  {
+   if(grabbing && finished_init)
+   {
+     grabbing = false;
+     robot.magn_ON = true;
+     putting = true;
+     
+   }
+   else if(putting && finished_init)
+   {
+     putting = false;
+     grabbing = true;
+     robot.magn_ON = false;
+     
+     if(mode_num == 4)
+       if(auto_index < num_of_things - 1)
+       {
+         tower_size += things[auto_index].hei;
+         auto_index++;
+       }
+       else
+       {
+         auto_index = 0;
+         moving = false;
+         tower_size = 0;
+         GO_B.title = "BUILD";
+       }
+   }
+ }
 }
 
 int signum(float x)
@@ -1023,6 +1104,33 @@ int signum(float x)
  
   return 0; 
 }
+
+  
+void sortThings()
+{
+  Thing temp;
+
+  for(int i = 0; i < num_of_things - 1; i++)
+  {
+    int j = i+1;
+    temp = things[i];
+   
+    while(things[i].dep > things[j].dep && j < num_of_things - 2)
+    {
+       things[i] = things[j]; 
+       j++;
+    }
+    
+    things[j] = temp;    
+   }
+}
+
+ void invKin(PVector coord)
+ {
+   DEST_ph[0] = atan2(-coord.z, coord.x);  
+   DEST_ph[2] = -acos((coord.x*coord.x + coord.y*coord.y -17425)/16800);
+   DEST_ph[1] = atan2(coord.y,coord.x)-asin((105*sin(DEST_ph[2]))/sqrt(coord.x*coord.x + coord.y*coord.y)) - PI;     
+ } 
 
 // -------------------------------------------------- MAIN CONTROLS ------------------------------------------------
 void controls()
@@ -1059,12 +1167,14 @@ void controls()
         manual_control();  
         break;
       case 1:
-        if(moving)
-          move_angles();     
-        input_angles();    
+      if(moving)
+          move_angles();   
+       input_angles();    
         break; 
      case 2:
         inverse_kinematics();
+        if(moving)
+          move_angles();  
         break;
      case 3:
        if(playing && init_play)
@@ -1072,7 +1182,10 @@ void controls()
         recorded_play();
         break;
      case 4:
+        if(moving)
+          move_angles();
         automatic_mode();
+     
         break;
      default:
         break;
@@ -1088,10 +1201,10 @@ void manual_control()
   for(int i = 0; i < 8; i += 2)
   {
     if(C_BUTTONS[i].pressed)
-      if(!effCollides(ph[0] + int(i == 0)*da,ph[1] - int(i == 2)*da,ph[2] + int(i == 4)*da))
+      if(!effCollides(ph[0] + int(i == 0)*5*da,ph[1] - int(i == 2)*5*da,ph[2] + int(i == 4)*5*da))
         ph[i/2] += da;
     if(C_BUTTONS[i+1].pressed) 
-      if(!effCollides(ph[0] - int(i == 1)*da,ph[1] - int(i == 3)*da,ph[2] - int(i == 5)*da))
+      if(!effCollides(ph[0] - int(i == 1)*5*da,ph[1] - int(i == 3)*5*da,ph[2] - int(i == 5)*5*da))
         ph[i/2] -= da;  
 
     if (ph[i/2] > max_ph[i/2])
@@ -1177,6 +1290,11 @@ void inverse_kinematics()
       if (C_BUTTONS[11].pressed) 
         put_coord.z --;
     }    
+    
+   if(grabbing)
+      invKin(grab_coord);
+   if(putting)
+      invKin(put_coord);
 }
 
 // -------------------------------------------- RECORDED PLAY ------------------------------------------
@@ -1196,7 +1314,10 @@ void recorded_play()
         init_play = true;
      }
      else 
+     {  
+       MemoIndex = 0;
        playing = false;
+     }
    }
 }
 
@@ -1208,20 +1329,27 @@ void automatic_mode()
      // check whether the point is within arm's range
     
     if(C_BUTTONS[0].pressed)   
-      if(tower_coord.x + 1  < 101)
+      if(tower_coord.x + 1  < 120)
         tower_coord.x ++;
     if(C_BUTTONS[1].pressed)
-     if(tower_coord.x - 1  > 39)
+     if(tower_coord.x - 1  > -120)
       tower_coord.x --; 
 
     if(C_BUTTONS[2].pressed)
-      if(tower_coord.y + 1  < 360)
-        tower_coord.y ++;
+      if(tower_coord.z + 1  < 120)
+        tower_coord.z ++;
     if(C_BUTTONS[3].pressed) 
-     if(tower_coord.y - 1  > 0)
-        tower_coord.y --;
+     if(tower_coord.z - 1  > -120)
+        tower_coord.z --;
    }
    
+    tower_coord.y = tower_size - 30;
+    
+    if(grabbing)
+      invKin(things[auto_index].pos);
+    if(putting)
+      invKin(tower_coord);
+  
 }
 
 // ----------------------------------------------- PHYSICS AND INTERACTIONS -------------------------------------------------------------------
@@ -1234,14 +1362,8 @@ void move_object()
 
     if (distance < r + 20)
     {
-        //PVector new_pos = robot.effector_pos;
-        //new_pos.y ;
-        //new_pos.z calculate some angle and 
-        // move the object towards its original position
-        // so that it can levitate in a magnetic field     
-        
-        //things[i].update(robot.effector_pos, robot.effector_orient);
         things[i].caught = true;
+        things[i].vel = new PVector(0,0,0);
         blocked = true;
     } 
    }   
@@ -1256,24 +1378,16 @@ void gravity()
     if(!things[i].caught)
     {
        if(things[i].pos.y < -things[i].hei/2)
-      {   
-          //check for collisions
-          // for(int j = 0; j < num_of_things; j++)
-          //
-          
-          things[i].vel.y += g;
-          
-      }
-      else
-      {
-         things[i].pos.y = -things[i].hei/2;
-         things[i].vel = new PVector(0,0,0);
-      }
+         things[i].vel.y += g;
+        else
+        {
+           things[i].pos.y = -things[i].hei/2;
+           things[i].vel = new PVector(0,0,0);
+        }
     }
   }   
   
 }
-
 
 // -------------------------------------------------- MEMORY FUNCTIONS ---------------------------------------------------
 void translateMemory()
@@ -1406,19 +1520,19 @@ boolean isColliding(PVector pos1, float r1, PVector pos2, float r2)
 boolean effCollides(float phi, float theta, float psi)
 {
     PVector new_eff_pos = new PVector(0,0,0);
-    new_eff_pos.x = +80*cos(phi)*sin(theta)
-    +105*cos(phi)*sin(theta + psi);
-    new_eff_pos.y = -80-80*cos(phi)-105*cos(theta + psi);
+    new_eff_pos.x = 80*cos(phi)*sin(theta)
+    +112*cos(phi)*sin(theta + psi);
+    new_eff_pos.y = -80-80*cos(theta)-112*cos(theta + psi);
     new_eff_pos.z = -80*sin(phi)*sin(theta)
-    -105*sin(phi)*sin(theta + psi);
+    -112*sin(phi)*sin(theta + psi);
     
     if(!robot.magnetic)
       for(int i = 0; i < num_of_things; i++)
-        if(isColliding(new_eff_pos, 4, things[i].pos,sqrt(3*(things[i].dep/2)*(things[i].dep/2))))
+        if(isColliding(new_eff_pos, 2, things[i].pos, sqrt(3*pow(things[i].dep/2,2))))
           return true;
         
     for(int i = 1; i < 3; i++)
-      if(isColliding(new_eff_pos, 5, robot.joints[i].actual_pos, 30))
+      if(isColliding(new_eff_pos, 4, robot.base.pos, sqrt(3*pow(robot.base.dep/2,2))))
           return true;
           
     if(new_eff_pos.y > -5)

@@ -1,8 +1,8 @@
 class Thing
 {
   // position and size
-  public PVector pos;
-  public PVector orient;
+  PVector pos;
+  PVector orient;
   PVector vel;
   int wid, hei, dep;
   color colour;
