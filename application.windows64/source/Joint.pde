@@ -1,12 +1,14 @@
-class joint
+class Joint
 {
   PVector pos;
   PVector orient;
+  PVector actual_pos;
 
-  joint(PVector position, PVector rotations)
+  Joint(PVector position, PVector rotations)
   {
     pos = position;
     orient = rotations;
+    actual_pos = new PVector(0,0,0);
   }
 
   public void trans()

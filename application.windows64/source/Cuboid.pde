@@ -1,7 +1,7 @@
-class thing
+class Thing
 {
   // position and size
- private PVector pos;
+  PVector pos;
   PVector orient;
   PVector vel;
   int wid, hei, dep;
@@ -9,8 +9,7 @@ class thing
   PShape obj, cuboid;
   boolean caught;
 
-
-  thing(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  Thing(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
   {
     obj = createShape(GROUP);
 
@@ -30,7 +29,7 @@ class thing
     colour = c;
   }
 
-  thing(int pwidth, int pheight, int pdepth, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  Thing(int pwidth, int pheight, int pdepth, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
   {
     obj = createShape(GROUP);
 
@@ -49,7 +48,32 @@ class thing
 
     colour = c;
   }
+  
+  public void changeValues(int param, int px, int py, int pz, float xangle, float yangle, float zangle, color c)
+  {
+    pos = new PVector(px, py, pz);
+    orient = new PVector(xangle, yangle, zangle);
+    vel = new PVector(0,0,0);   
+    caught = false;   
+    dep = param;
+    wid = param;
+    hei = param;
+    colour = c;
+    cuboid = createShape(BOX, wid, hei, dep);
+    obj.removeChild(0);
+    obj.addChild(cuboid);
+  }
 
+ void update(PVector new_pos, PVector new_orient)
+  {  
+    pos.x = new_pos.x;
+    pos.y = new_pos.y;
+    pos.z = new_pos.z;
+    orient.x = new_orient.x;
+    orient.y = new_orient.y;
+    orient.z = new_orient.z;
+  }
+  
   public void show()
   {  
     pushMatrix();
@@ -64,15 +88,5 @@ class thing
     obj.disableStyle();
     shape(obj);
     popMatrix();
-  }
-
-  void update(PVector new_pos, PVector new_orient)
-  {  
-    pos.x = new_pos.x;
-    pos.y = new_pos.y;
-    pos.z = new_pos.z;
-    orient.x = new_orient.x;
-    orient.y = new_orient.y;
-    orient.z = new_orient.z;
   }
 }

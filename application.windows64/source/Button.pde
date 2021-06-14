@@ -1,17 +1,12 @@
-class button
+class Button
 {
-  private int x, y, w, h;
-  public String title;
+  // coordinates, width and height
+  int x, y, w, h;
   
-  // MAKE PRIVATE AND GET isPressed FUNCTION HERE
-  // isPressed needs to be added here so that 
-  // everything checking whether is clicked can
-  // be done with one line od code 
-  // not as it is now
-  
-  boolean pressed; 
+  public String title;  
+  public boolean pressed;
 
-  button(int px, int py, int pw, int ph, String txt)
+  Button(int px, int py, int pw, int ph, String txt)
   {
     x = px;
     y = py;
@@ -20,6 +15,15 @@ class button
     title = txt;
     pressed = false;
   }
+  
+  public void isPressed()
+  {
+    if (mousePressed && mouseX > x-w/2 && mouseX < x+ w/2 
+      && mouseY > y - h/2 && mouseY < y + h/2)  
+      pressed = true;  
+    else 
+      pressed = false;
+  }
 
   public void show()
   {
@@ -27,20 +31,20 @@ class button
     {  
       strokeWeight(4);
       fill(90, 180);
-    } else
+    } 
+    else
     {  
       strokeWeight(2);
       fill(180, 180);
     }
-
-
+    
     rect(x, y, w, h); 
 
-    fill(255, 0, 0, 180);
-    textAlign(CENTER, CENTER);
     if (h != 0)
     {
+      fill(0, 150);
       textSize(0.4*h);
+      textAlign(CENTER, CENTER);
       text(title, x, y, w, h);
     }
   }
