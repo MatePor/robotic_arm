@@ -125,7 +125,7 @@ void setup()
     {
       ok = true;  
       color rand_color = color(random(255), random(255), random(255));
-      test_thing = new Thing(ran, int(random(-range,range)), int(random(-1000,-500)), int(random(-range, range)),
+      test_thing = new Thing(ran, int(random(-range,range)), int(random(-1500,-500)), int(random(-range, range)),
       0, random(PI), 0, rand_color);
       
       for (int j = 0; j < i; j++)
@@ -249,7 +249,7 @@ void resetAll()
       ok = true;  
       color rand_color = color(random(255), random(255), random(255));
       
-      things[i].changeValues(ran, int(random(-range,range)), -600, int(random(-range, range)),
+      things[i].changeValues(ran, int(random(-range,range)), int(random(-1500,-500)), int(random(-range, range)),
       0, random(PI), 0, rand_color);
       
       for (int j = 0; j < i; j++)
