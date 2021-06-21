@@ -2,7 +2,7 @@ class Menu
 {
   Button START, RESET_B, MENU_B, INSTRUCTIONS, AUTHOR, BACK_B;
   public boolean auth, inst;
-  PImage portrait = loadImage("images/portrait.jpg");
+  //PImage portrait = loadImage("images/portrait.jpg");
   
   Menu()
   {
@@ -61,8 +61,8 @@ public void openAuthor()
   textSize(30);
   textAlign(CENTER, UP);
   text(" Mateusz Porębiak ", width/2, height/2 + 200, width*2/3, 50);
-  portrait.resize(300, 400);
-  image(portrait, width/2-150, height/2-250);
+  //portrait.resize(300, 400);
+  //image(portrait, width/2-150, height/2-250);
   BACK_B.show();
 }
 

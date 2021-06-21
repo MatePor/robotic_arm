@@ -10,9 +10,10 @@ class Arm
   PVector effector_pos, effector_orient;
   PVector position;
   PVector []effector_pos_history;
-  PVector []move_history;
   public boolean magnetic, magn_ON;
-
+  
+  Memory memory_A, memory_B, memory_C;
+  
   Arm(PVector []angles, PVector pos, String ID_, int max_grip_)
   {
     position = pos;
@@ -24,6 +25,9 @@ class Arm
     dsize = 0.5;
     magnetic = false;
     magn_ON = false;
+    memory_A = new Memory();
+    memory_B = new Memory();
+    memory_C = new Memory(); 
     
     color grey = color(55);
     color red = color(210, 0, 0);

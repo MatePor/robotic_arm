@@ -5,6 +5,7 @@ class Thing
   PVector orient;
   PVector vel;
   int wid, hei, dep;
+  float r_bound;
   color colour;
   PShape obj, cuboid;
   boolean caught;
@@ -22,7 +23,8 @@ class Thing
     dep = param;
     wid = param;
     hei = param;
-
+    r_bound = sqrt(3*dep*dep/4);
+    
     cuboid = createShape(BOX, wid, hei, dep);
     obj.addChild(cuboid);
 
@@ -42,7 +44,8 @@ class Thing
     wid = pwidth;
     hei = pheight;
     dep = pdepth;
-
+    r_bound = sqrt(wid*wid/4+hei*hei/4+dep*dep/4);
+    
     cuboid = createShape(BOX, wid, hei, dep);
     obj.addChild(cuboid);
 
