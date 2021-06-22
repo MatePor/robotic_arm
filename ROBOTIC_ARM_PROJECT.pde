@@ -9,7 +9,7 @@ String []mode_names = {"MANUAL_B", "INPUT_A", "INVERSE_K", "RECORDED_P", "AUTOMA
 boolean grip_on, blocked;
 
 boolean roll_up, button_is_pressed, keyboard, automatic, continuous, flying, 
-  recording, change, show_ind, only_ch, init_play, putting, grabbing, menu_o, playing, mouse_follow, full_memo, moving, config;
+  recording, change, show_ind, only_ch, init_play, putting, grabbing, menu_o, playing, mouse_follow, full_memo, moving, config, laser_ON;
 
 int num_of_things, num_of_c_buttons;
 int range, floor_level, dome_radius, hall_center;   
@@ -96,7 +96,7 @@ void setup()
     angles[i] = new PVector(0, 0, 0);
 
   // angle step
-  da = PI/180; 
+  da = 3*PI/180; 
 
   // create an arm
   robot = new Arm(angles, new PVector(0, 0, 0), "NUm 1", 26);
@@ -108,7 +108,7 @@ void setup()
   dome_radius = 1500;
 
   // things (little boxes falling from the sky)
-  num_of_things = 6;
+  num_of_things = 10;
   things = new Thing[num_of_things];
   for (int i = 0; i < num_of_things; i++)
   {
@@ -189,6 +189,7 @@ void setup()
   }
 
   // initialize control booleans
+  laser_ON = false;
   roll_up = false;
   menu_o = true;
   keyboard = false;
@@ -237,6 +238,7 @@ void resetAll()
   camCenter = new PVector(width/2, floor_level - 75, 0);
 
   mode_num = 0;
+  tower_size = 0;
 
   memory_A.clearAll();
   full_memo = false;
@@ -320,6 +322,7 @@ void draw()
     translate(camCenter.x - hall_center, floor_level - camCenter.y, - camCenter.z);
     drawLab();
     
+ 
     if(show_ind)
     {
       if (mode_num == 2)
@@ -330,6 +333,9 @@ void draw()
       if (mode_num == 4)  
           indSphere(tower_coord, color(0, 0, 255));
     }
+    
+   
+    
     
     animation();
     popMatrix();
@@ -448,6 +454,9 @@ void mouseReleased()
   if (MENU_B.pressed)
     menu_o = true;
 
+  if(LSR_ON.pressed)
+    laser_ON = !laser_ON;
+    
   if (roll_up)
   {   
     if (RECORD_B.pressed)
@@ -928,6 +937,22 @@ void animation()
   robot.updateArm(angles);
   robot.showArm();
 
+  
+    if(laser_ON)
+    {
+      strokeWeight(5);
+      stroke(255,0,0);
+      line(robot.effector_pos.x, robot.effector_pos.y, robot.effector_pos.z, 
+      80*cos(angles[0].y)*sin(angles[1].z)
+      +600*cos(angles[0].y)*sin(angles[1].z + angles[2].z), -80-80*cos(angles[1].z)-600*cos(angles[1].z + angles[2].z), 
+     -80*sin(angles[0].y)*sin(angles[1].z)
+    -600*sin(angles[0].y)*sin(angles[1].z + angles[2].z));
+      
+    }
+    
+
+
+
   gravity();
 
   if (robot.magnetic && robot.magn_ON)
@@ -1129,19 +1154,16 @@ void sortThings()
 {
   Thing temp;
   
-  for (int i = 0; i < num_of_things - 1; i++)
+  for (int i = 1; i < num_of_things; i++)
   {  
     temp = things[i];
     
     int j = i;
     
-    while(things[i].hei < things[j+1].hei && j < num_of_things - 2)
-    {
-      things[j] = things[j+1]; 
-      j++;
-    }
+    for( j = i - 1; j >= 0 && things[ j ].wid < temp.wid ; j-- )
+             things[ j + 1 ] = things[ j ];
     
-    things[j] = temp;
+    things[j + 1] = temp;
   }
 }
 
