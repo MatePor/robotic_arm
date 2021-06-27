@@ -16,7 +16,7 @@ int range, floor_level, dome_radius, hall_center;
 int MemoIndex, InputIndex, auto_index, tower_size;
 
 float camX, camY, camD;
-PVector camCenter, grab_coord, put_coord, tower_coord;
+PVector camCenter, grab_coord, put_coord, tower_coord, virt_eff;
 PImage roof;
 
 Menu my_menu;
@@ -62,6 +62,7 @@ void setup()
   grab_coord = new PVector(-50, -10, 50);
   put_coord = new PVector(50, -50, 50);
   tower_coord = new PVector(50, 0, 100);
+  virt_eff = new PVector(0,0,0);
 
   // angles(position)
   ph = new float[6];
@@ -245,7 +246,7 @@ void resetAll()
 
   memory_A.clearAll();
   full_memo = false;
-
+  
   for (int i = 0; i < 6; i++)
     angles[i] = new PVector(0, 0, 0);
 
@@ -273,6 +274,27 @@ void resetAll()
   }
   
   sortThings();
+  
+   laser_ON = false;
+  roll_up = false;
+  menu_o = true;
+  keyboard = false;
+  automatic = false;
+  recording = false;
+  init_play = true;
+  playing = false;
+  mouse_follow = false;
+  full_memo = false;
+  flying = false;
+  moving = false;
+  continuous = false;
+  putting = false;
+  grabbing = true;
+  config = false;
+  change = false;
+  only_ch = false;
+  only_go = false;
+  show_ind = true;
 }
 
 // ---------------------------------- CAMERA FUNCTION ----------------------------------------------
@@ -365,12 +387,26 @@ void mouseDragged()
   }
 }
 
+void keyPressed()
+{
+  if (key == 'O' || key == 'o')
+    da -= PI/360;
+  
+  if (key == 'P' || key == 'p')
+    da += PI/360;
+    
+  if (da <= PI/360)
+    da = PI/360;
+    
+  if (da >= PI/45)
+    da = PI/45;
+}
+  
 void keyReleased()
 {
 
   if (key == 'F' || key == 'f')
     flying = !flying;
-    
   
   if (key == 'L' || key == 'l')
     laser_ON = !laser_ON;
@@ -452,15 +488,27 @@ void mouseReleased()
         RECORD_B.title = "RECORD";
     }
 
-    if (MODE_B.pressed && !playing && !moving)
+    if (MODE_B.pressed && !playing)
     {
-      mode_num++;
-      if (mode_num > 4)
-        mode_num = 0;
-      MODE_B.title = mode_names[mode_num];
-      
-      if(mode_num == 2 || mode_num == 4)
-        robot.magnetic = true;
+      if(moving)
+      {
+        fill(255,0,0);
+        textSize(30);
+        text("PRESS STOP!", width/2, 100);
+      }
+      else
+      {
+        mode_num++;
+        if (mode_num > 4)
+          mode_num = 0;
+        MODE_B.title = mode_names[mode_num];
+        
+        if(mode_num == 2 || mode_num == 4)
+          robot.magnetic = true;
+          
+        if(mode_num != 3)
+          only_go = false;
+      }
     }
 
     if ((mode_num == 1 || mode_num == 2)&& MOVE_B.pressed)
@@ -498,7 +546,7 @@ void mouseReleased()
         KEY_BUT.title = "KEYBOARD";
     }
     
-    if ((mode_num == 2 || mode_num == 4) && IND_SHOW.pressed)
+    if ((mode_num == 2 || mode_num == 4 || mode_num == 1) && IND_SHOW.pressed)
       show_ind = !show_ind;
      
     if (mode_num == 2 && ONLY_GO.pressed) 
@@ -655,14 +703,12 @@ void panel()
       text(" recording... ", width/2, 20);
     }
     popStyle();
-
-    if (mode_num < 2)
-    { 
-      if (robot.magnetic) 
-        MGNT_ON.show();
-      CH_EFF.show();
-    }
-
+    
+    if ((robot.magnetic && mode_num < 3) ||( robot.magnetic && only_go)) 
+       MGNT_ON.show();
+       
+    CH_EFF.show();
+  
     switch(mode_num)
     {
     case 0:
@@ -692,6 +738,7 @@ void panel()
 
     case 1: 
       MOVE_B.show();
+      IND_SHOW.show();
       //KEY_BUT.show();
 
       pushStyle();
@@ -809,7 +856,6 @@ void panel()
       }
 
       ellipse(140, 240, 15, 15);
-
 
       pushStyle();
       if (!playing)
@@ -945,14 +991,19 @@ void animation()
   if(laser_ON)
     drawLaser();
   
-  if(keyPressed && (key == 'o' || key == 'O'))
+  if(keyPressed && (key == 'i' || key == 'I'))
     drawEffOrient();
     
   if(show_ind)
   {
+    if(mode_num == 1)
+      indSphere(virt_eff, color(255,0,0));
+      
     if (mode_num == 2)
     { 
-      indSphere(grab_coord, color(0, 255, 0));
+      if(!only_go)
+        indSphere(grab_coord, color(0, 255, 0));
+        
       indSphere(put_coord, color(255, 0, 0));
     }
     if (mode_num == 4)  
@@ -1001,7 +1052,6 @@ void anythingPressed()
   boolean C_prsd = false;
   for (int i = 0; i < num_of_c_buttons; i++)
   {
-    C_BUTTONS[i].isPressed();
     presses.add(C_BUTTONS[i].pressed);
 
     if (C_BUTTONS[i].pressed)
@@ -1013,82 +1063,49 @@ void anythingPressed()
   else 
   change = false;
 
-  ZOOM_IN.isPressed();
   presses.add(ZOOM_IN.pressed);
-  ZOOM_OUT.isPressed();
   presses.add(ZOOM_OUT.pressed);
-  MENU_B.isPressed();
   presses.add(MENU_B.pressed);
-  CONTROLS.isPressed();
   presses.add(CONTROLS.pressed);
-  RECORD_B.isPressed();
   presses.add(RECORD_B.pressed);
-  MOVE_B.isPressed();
   presses.add(MOVE_B.pressed);
-  MODE_B.isPressed();
   presses.add(MODE_B.pressed);
+  presses.add(CH_EFF.pressed);
 
   if (keyboard && mode_num != 1 && mode_num != 3)
     for (int i = 0; i < 6 - int(mode_num == 5)*3; i++)
-    {
-      TXT_A[i].isPressed();
-
       if (TXT_A[i].pressed)
         InputIndex = i;
-    }
 
   if (mode_num == 3)
   {
-    PLAY_R.isPressed();
     presses.add(PLAY_R.pressed);
-    CONT_B.isPressed();
     presses.add(CONT_B.pressed);
-    CLR_M.isPressed();
     presses.add(CLR_M.pressed);
-    R_MODE.isPressed();
     presses.add(R_MODE.pressed);
   }
 
-  if (robot.magnetic)
-  {    
-    MGNT_ON.isPressed();
+  if (robot.magnetic && !(mode_num == 3 && !only_go))
     presses.add(MGNT_ON.pressed);
-  }
 
   /*
   if(mode_num == 1 || mode_num == 2)
-   {
-   KEY_BUT.isPressed();
-   presses.add(KEY_BUT.pressed);
-   }
-   */
-  if(mode_num == 2 || mode_num == 4)
-  {
-    IND_SHOW.isPressed();
+     presses.add(KEY_BUT.pressed);
+  */
+  
+  if(mode_num == 1 || mode_num == 2 || mode_num == 4)
     presses.add(IND_SHOW.pressed);  
-  }
   
   if(mode_num == 2)
-  {
-    ONLY_GO.isPressed();
     presses.add(ONLY_GO.pressed);  
-  }
   
   if (mode_num == 4)
   {
     for (int i = 0; i < 4; i++)
-    {
-      C_BUTTONS[i].isPressed();
       presses.add(C_BUTTONS[i].pressed);
-    }
-
-    GO_B.isPressed();
+      
     presses.add(GO_B.pressed);
   }
-
-
-  CH_EFF.isPressed();
-  presses.add(CH_EFF.pressed);
 
   for (int i = 0; i < presses.size(); i++)
     if (presses.get(i))
@@ -1303,7 +1320,12 @@ void input_angles()
         DEST_ph[i/2] = -max_ph[i/2];
     }
   }
-
+  virt_eff.x = 80*cos(DEST_ph[0])*sin(DEST_ph[1])
+    +105*cos(DEST_ph[0])*sin(DEST_ph[1] + DEST_ph[2]);
+  virt_eff.y = -80-80*cos(DEST_ph[1])-112*cos(DEST_ph[1] + DEST_ph[2]);
+  virt_eff.z = -80*sin(DEST_ph[0])*sin(DEST_ph[1])
+    -105*sin(DEST_ph[0])*sin(DEST_ph[1] + DEST_ph[2]);
+  
   if (C_BUTTONS[12].pressed)
     robot.grip_size += 1;
   if (C_BUTTONS[13].pressed) 
@@ -1663,8 +1685,10 @@ float nearAng(float alpha)
 
 boolean fallsStable(Thing falling_obj, Thing standing_obj)
 {
-  if (dist(falling_obj.pos.x, falling_obj.pos.z, 
-    standing_obj.pos.x, standing_obj.pos.z) < sqrt(pow(standing_obj.wid,2)/4)/7)
+  if((falling_obj.pos.x > standing_obj.pos.x - standing_obj.wid/4 && 
+   falling_obj.pos.x < standing_obj.pos.x + standing_obj.wid/4) ||
+  (falling_obj.pos.z > standing_obj.pos.z - standing_obj.dep/4 && 
+   falling_obj.pos.z < standing_obj.pos.z + standing_obj.dep/4))
     return true;
 
   return false;
@@ -1695,8 +1719,6 @@ void drawEffOrient()
   stroke(0,255,0);
   line(0,0,0,25,0,0);
   stroke(0,0,255);
-  
-  
   line(0,0,0,0,0,25);
   popMatrix();
 }

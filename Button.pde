@@ -27,6 +27,8 @@ class Button
 
   public void show()
   {
+    this.isPressed();
+    
     if (pressed) 
     {  
       strokeWeight(4);
