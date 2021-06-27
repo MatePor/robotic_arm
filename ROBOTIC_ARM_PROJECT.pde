@@ -583,7 +583,7 @@ void mouseReleased()
   }
 }
 
-/*
+
 void mouseWheel(MouseEvent event)
  {
  float sens = 0.1;
@@ -595,7 +595,6 @@ void mouseWheel(MouseEvent event)
  if(camD > 4.1 )
  camD = 4.1;
  }
- */
 
 /*
 void check_cursor()
